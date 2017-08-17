@@ -282,7 +282,7 @@ EOF;
         $this->slides = [];
         $testName = preg_replace('~\W~', '_', Descriptor::getTestAsString($e->getTest()));
         $this->dir = codecept_output_dir() . "record_{$this->seed}_$testName";
-        @mkdir($this->dir);
+        mkdir($this->dir);
     }
 
     public function cleanup(TestEvent $e)

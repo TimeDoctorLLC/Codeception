@@ -1,4 +1,5 @@
 <?php
+
 namespace Codeception\Extension;
 
 use Codeception\Event\StepEvent;
@@ -237,9 +238,10 @@ EOF;
         $this->webDriverModule = null;
         if (!$this->hasModule($this->config['module'])) {
             $this->writeln("Recorder is disabled, no available modules");
+
             return;
         }
-        $this->seed = uniqid();
+        $this->seed            = uniqid();
         $this->webDriverModule = $this->getModule($this->config['module']);
         if (!$this->webDriverModule instanceof ScreenshotSaver) {
             throw new ExtensionException(
@@ -247,10 +249,12 @@ EOF;
                 'You should pass module which implements Codeception\Lib\Interfaces\ScreenshotSaver interface'
             );
         }
-        $this->writeln(sprintf(
-            "⏺ <bold>Recording</bold> ⏺ step-by-step screenshots will be saved to <info>%s</info>",
-            codecept_output_dir()
-        ));
+        $this->writeln(
+            sprintf(
+                "⏺ <bold>Recording</bold> ⏺ step-by-step screenshots will be saved to <info>%s</info>",
+                codecept_output_dir()
+            )
+        );
         $this->writeln("Directory Format: <debug>record_{$this->seed}_{testname}</debug> ----");
     }
 
@@ -269,7 +273,7 @@ EOF;
             ->produce();
 
         file_put_contents(codecept_output_dir().'records.html', $indexHTML);
-        $this->writeln("⏺ Records saved into: <info>file://" . codecept_output_dir().'records.html</info>');
+        $this->writeln("⏺ Records saved into: <info>file://".codecept_output_dir().'records.html</info>');
     }
 
     public function before(TestEvent $e)
@@ -277,11 +281,11 @@ EOF;
         if (!$this->webDriverModule) {
             return;
         }
-        $this->dir = null;
+        $this->dir     = null;
         $this->stepNum = 0;
-        $this->slides = [];
-        $testName = preg_replace('~\W~', '_', Descriptor::getTestAsString($e->getTest()));
-        $this->dir = codecept_output_dir() . "record_{$this->seed}_$testName";
+        $this->slides  = [];
+        $testName      = preg_replace('~\W~', '_', Descriptor::getTestAsString($e->getTest()));
+        $this->dir     = codecept_output_dir()."record_{$this->seed}_$testName";
         mkdir($this->dir);
     }
 
@@ -292,6 +296,7 @@ EOF;
         }
         if (!$this->config['delete_successful']) {
             $this->persist($e);
+
             return;
         }
 
@@ -305,7 +310,7 @@ EOF;
             return;
         }
         $indicatorHtml = '';
-        $slideHtml = '';
+        $slideHtml     = '';
         foreach ($this->slides as $i => $step) {
             $indicatorHtml .= (new Template($this->indicatorTemplate))
                 ->place('step', (int)$i)
@@ -328,9 +333,12 @@ EOF;
             ->place('carousel_class', $this->config['animate_slides'] ? ' slide' : '')
             ->produce();
 
-        $indexFile = $this->dir . DIRECTORY_SEPARATOR . 'index.html';
+        if (!is_dir($this->dir)) {
+            @mkdir($this->dir);
+        }
+        $indexFile = $this->dir.DIRECTORY_SEPARATOR.'index.html';
         file_put_contents($indexFile, $html);
-        $testName = Descriptor::getTestSignature($e->getTest()). ' - '.ucfirst($e->getTest()->getFeature());
+        $testName                       = Descriptor::getTestSignature($e->getTest()).' - '.ucfirst($e->getTest()->getFeature());
         $this->recordedTests[$testName] = substr($indexFile, strlen(codecept_output_dir()));
     }
 
@@ -342,9 +350,11 @@ EOF;
         if ($e->getStep() instanceof CommentStep) {
             return;
         }
-
-        $filename = str_pad($this->stepNum, 3, "0", STR_PAD_LEFT) . '.png';
-        $this->webDriverModule->_saveScreenshot($this->dir . DIRECTORY_SEPARATOR . $filename);
+        if (!is_dir($this->dir)) {
+            @mkdir($this->dir);
+        }
+        $filename = str_pad($this->stepNum, 3, "0", STR_PAD_LEFT).'.png';
+        $this->webDriverModule->_saveScreenshot($this->dir.DIRECTORY_SEPARATOR.$filename);
         $this->stepNum++;
         $this->slides[$filename] = $e->getStep();
     }

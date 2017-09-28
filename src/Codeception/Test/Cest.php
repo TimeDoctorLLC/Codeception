@@ -91,6 +91,20 @@ class Cest extends Test implements
             $retries = $modules->getConfig('retries', 0);
             if ($retries > $this->tries) {
                 $this->tries++;
+
+                if ($e instanceOf \PHPUnit_Framework_AssertionFailedError) {
+                    $status = self::STATUS_FAIL;
+                } elseif ($e instanceOf \PHPUnit_Framework_Exception) {
+                    $status = self::STATUS_ERROR;
+                } elseif ($e instanceOf \Throwable) {
+                    $e      = new \PHPUnit_Framework_ExceptionWrapper($e);
+                    $status = self::STATUS_ERROR;
+                } elseif ($e instanceOf \Exception) {
+                    $e      = new \PHPUnit_Framework_ExceptionWrapper($e);
+                    $status = self::STATUS_ERROR;
+                }
+                $this->errorLoggerEnd($status, 0, $e);
+                $this->getScenario()->comment("test failed: retrying for ".$this->tries);
                 $this->test();
             } else {
                 $this->executeHook($I, 'failed');

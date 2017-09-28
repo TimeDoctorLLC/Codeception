@@ -103,6 +103,7 @@ class Cest extends Test implements
                     $e      = new \PHPUnit_Framework_ExceptionWrapper($e);
                     $status = self::STATUS_ERROR;
                 }
+                $this->getScenario()->comment($e->getMessage());
                 $this->errorLoggerEnd($status, 0, $e);
                 $this->getScenario()->comment("test failed: retrying for ".$this->tries);
                 $this->test();

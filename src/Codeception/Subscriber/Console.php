@@ -546,6 +546,7 @@ class Console implements EventSubscriberInterface
                 }
             }
         }
+        $this->width = 600;
         return $this->width;
     }
 

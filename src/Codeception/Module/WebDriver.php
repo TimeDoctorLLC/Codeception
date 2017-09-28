@@ -439,8 +439,14 @@ class WebDriver extends CodeceptionModule implements
                 }
                 $this->debugSection("Selenium {$logType} Logs", "\n" . $this->formatLogEntries($logEntries));
 
-                if ($logType === 'browser' && $this->config['log_js_errors']
-                    && ($test instanceof ScenarioDriven)
+                if ($logType === 'browser' &&
+                    $this->config['log_js'] &&
+                    ($test instanceof ScenarioDriven)
+                ) {
+                    $this->logJS($test, $logEntries);
+                }elseif ($logType === 'browser' &&
+                    $this->config['log_js_errors'] &&
+                    ($test instanceof ScenarioDriven)
                 ) {
                     $this->logJSErrors($test, $logEntries);
                 }
@@ -470,6 +476,27 @@ class WebDriver extends CodeceptionModule implements
             $formattedLogs .= "{$time} {$logEntry['level']} - {$logEntry['message']}\n";
         }
         return $formattedLogs;
+    }
+
+    /**
+     * Logs JavaScript errors as comments.
+     *
+     * @param ScenarioDriven $test
+     * @param array $browserLogEntries
+     */
+    protected function logJS(ScenarioDriven $test, array $browserLogEntries)
+    {
+        foreach ($browserLogEntries as $logEntry) {
+            if (true === isset($logEntry['level'])
+                && true === isset($logEntry['message'])
+            ) {
+                // Timestamp is in milliseconds, but date() requires seconds.
+                $time = date('H:i:s', $logEntry['timestamp'] / 1000) .
+                    // Append the milliseconds to the end of the time string
+                    '.' . ($logEntry['timestamp'] % 1000);
+                $test->getScenario()->comment("{$time} {$logEntry['level']} - {$logEntry['message']}");
+            }
+        }
     }
 
     /**

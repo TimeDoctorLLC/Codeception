@@ -487,8 +487,9 @@ class WebDriver extends CodeceptionModule implements
     protected function logJS(ScenarioDriven $test, array $browserLogEntries)
     {
         foreach ($browserLogEntries as $logEntry) {
-            if (true === isset($logEntry['level'])
-                && true === isset($logEntry['message'])
+            if (true === isset($logEntry['level']) &&
+                true === isset($logEntry['message']) &&
+                $logEntry['level'] != 'WARNING'
             ) {
                 // Timestamp is in milliseconds, but date() requires seconds.
                 $time = date('H:i:s', $logEntry['timestamp'] / 1000) .

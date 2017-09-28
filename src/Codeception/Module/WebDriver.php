@@ -488,7 +488,8 @@ class WebDriver extends CodeceptionModule implements
             if (true === isset($logEntry['level']) &&
                 true === isset($logEntry['message']) &&
                 $logEntry['level'] != 'WARNING' &&
-                $entries_count > $count
+                $logEntry['level'] != 'DEBUG' &&
+                ($entries_count == 0 || $entries_count > $count)
             ) {
                 // Timestamp is in milliseconds, but date() requires seconds.
                 $time = date('H:i:s', $logEntry['timestamp'] / 1000) .

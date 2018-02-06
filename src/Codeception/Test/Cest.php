@@ -93,7 +93,7 @@ class Cest extends Test implements
                 $this->tries++;
 
                 if ($e instanceOf \PHPUnit_Framework_AssertionFailedError) {
-                    $status = self::STATUS_FAIL;
+                    throw $e;
                 } elseif ($e instanceOf \PHPUnit_Framework_Exception) {
                     $status = self::STATUS_ERROR;
                 } elseif ($e instanceOf \Throwable) {

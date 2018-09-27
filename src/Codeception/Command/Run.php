@@ -3,6 +3,7 @@ namespace Codeception\Command;
 
 use Codeception\Codecept;
 use Codeception\Configuration;
+use Codeception\Util\PathResolver;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -70,12 +71,14 @@ use Symfony\Component\Console\Output\OutputInterface;
  *  --coverage-html       Generate CodeCoverage HTML report in path (default: "coverage")
  *  --coverage-xml        Generate CodeCoverage XML report in file (default: "coverage.xml")
  *  --coverage-text       Generate CodeCoverage text report in file (default: "coverage.txt")
+ *  --coverage-phpunit    Generate CodeCoverage PHPUnit report in file (default: "coverage-phpunit")
  *  --no-exit             Don't finish with exit code
  *  --group (-g)          Groups of tests to be executed (multiple values allowed)
  *  --skip (-s)           Skip selected suites (multiple values allowed)
  *  --skip-group (-x)     Skip selected groups (multiple values allowed)
  *  --env                 Run tests in selected environments. (multiple values allowed, environments can be merged with ',')
  *  --fail-fast (-f)      Stop after first failure
+ *  --no-rebuild          Do not rebuild actor classes on start
  *  --help (-h)           Display this help message.
  *  --quiet (-q)          Do not output any message.
  *  --verbose (-v|vv|vvv) Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
@@ -83,6 +86,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  *  --ansi                Force ANSI output.
  *  --no-ansi             Disable ANSI output.
  *  --no-interaction (-n) Do not ask any interactive question.
+ *  --seed                Use the given seed for shuffling tests
  * ```
  *
  */
@@ -140,36 +144,37 @@ class Run extends Command
                 'coverage',
                 '',
                 InputOption::VALUE_OPTIONAL,
-                'Run with code coverage',
-                'coverage.serialized'
+                'Run with code coverage'
             ),
             new InputOption(
                 'coverage-html',
                 '',
                 InputOption::VALUE_OPTIONAL,
-                'Generate CodeCoverage HTML report in path',
-                'coverage'
+                'Generate CodeCoverage HTML report in path'
             ),
             new InputOption(
                 'coverage-xml',
                 '',
                 InputOption::VALUE_OPTIONAL,
-                'Generate CodeCoverage XML report in file',
-                'coverage.xml'
+                'Generate CodeCoverage XML report in file'
             ),
             new InputOption(
                 'coverage-text',
                 '',
                 InputOption::VALUE_OPTIONAL,
-                'Generate CodeCoverage text report in file',
-                'coverage.txt'
+                'Generate CodeCoverage text report in file'
             ),
             new InputOption(
                 'coverage-crap4j',
                 '',
                 InputOption::VALUE_OPTIONAL,
-                'Generate CodeCoverage report in Crap4J XML format',
-                'crap4j.xml'
+                'Generate CodeCoverage report in Crap4J XML format'
+            ),
+            new InputOption(
+                'coverage-phpunit',
+                '',
+                InputOption::VALUE_OPTIONAL,
+                'Generate CodeCoverage PHPUnit report in path'
             ),
             new InputOption('no-exit', '', InputOption::VALUE_NONE, 'Don\'t finish with exit code'),
             new InputOption(
@@ -198,6 +203,13 @@ class Run extends Command
             ),
             new InputOption('fail-fast', 'f', InputOption::VALUE_NONE, 'Stop after first failure'),
             new InputOption('no-rebuild', '', InputOption::VALUE_NONE, 'Do not rebuild actor classes on start'),
+            new InputOption(
+                'seed',
+                '',
+                InputOption::VALUE_REQUIRED,
+                'Define random seed for shuffle setting'
+            ),
+
         ]);
 
         parent::configure();
@@ -218,7 +230,8 @@ class Run extends Command
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->ensureCurlIsAvailable();
+        $this->ensurePhpExtIsAvailable('CURL');
+        $this->ensurePhpExtIsAvailable('mbstring');
         $this->options = $input->getOptions();
         $this->output = $output;
 
@@ -236,10 +249,15 @@ class Run extends Command
         if (!$this->options['colors']) {
             $this->options['colors'] = $config['settings']['colors'];
         }
+
         if (!$this->options['silent']) {
             $this->output->writeln(
-                Codecept::versionString() . "\nPowered by " . \PHPUnit_Runner_Version::getVersionString()
+                Codecept::versionString() . "\nPowered by " . \PHPUnit\Runner\Version::getVersionString()
             );
+            $this->output->writeln(
+                "Running with seed: " . $this->options['seed'] . "\n"
+            );
+
         }
         if ($this->options['debug']) {
             $this->output->setVerbosity(OutputInterface::VERBOSITY_VERY_VERBOSE);
@@ -248,12 +266,27 @@ class Run extends Command
         $userOptions = array_intersect_key($this->options, array_flip($this->passedOptionKeys($input)));
         $userOptions = array_merge(
             $userOptions,
-            $this->booleanOptions($input, ['xml', 'html', 'json', 'tap', 'coverage', 'coverage-xml', 'coverage-html', 'coverage-crap4j'])
+            $this->booleanOptions($input, [
+                'xml' => 'report.xml',
+                'html' => 'report.html',
+                'json' => 'report.json',
+                'tap' => 'report.tap.log',
+                'coverage' => 'coverage.serialized',
+                'coverage-xml' => 'coverage.xml',
+                'coverage-html' => 'coverage',
+                'coverage-text' => 'coverage.txt',
+                'coverage-crap4j' => 'crap4j.xml',
+                'coverage-phpunit' => 'coverage-phpunit'])
         );
         $userOptions['verbosity'] = $this->output->getVerbosity();
         $userOptions['interactive'] = !$input->hasParameterOption(['--no-interaction', '-n']);
         $userOptions['ansi'] = (!$input->hasParameterOption('--no-ansi') xor $input->hasParameterOption('ansi'));
 
+        if (!$this->options['seed']) {
+            $userOptions['seed'] = rand();
+        } else {
+            $userOptions['seed'] = intval($this->options['seed']);
+        }
         if ($this->options['no-colors'] || !$userOptions['ansi']) {
             $userOptions['colors'] = false;
         }
@@ -266,7 +299,7 @@ class Run extends Command
         if ($this->options['report']) {
             $userOptions['silent'] = true;
         }
-        if ($this->options['coverage-xml'] or $this->options['coverage-html'] or $this->options['coverage-text'] or $this->options['coverage-crap4j']) {
+        if ($this->options['coverage-xml'] or $this->options['coverage-html'] or $this->options['coverage-text'] or $this->options['coverage-crap4j'] or $this->options['coverage-phpunit']) {
             $this->options['coverage'] = true;
         }
         if (!$userOptions['ansi'] && $input->getOption('colors')) {
@@ -276,10 +309,6 @@ class Run extends Command
         $suite = $input->getArgument('suite');
         $test = $input->getArgument('test');
 
-        if (! Configuration::isEmpty() && ! $test && strpos($suite, $config['paths']['tests']) === 0) {
-            list(, $suite, $test) = $this->matchTestFromFilename($suite, $config['paths']['tests']);
-        }
-
         if ($this->options['group']) {
             $this->output->writeln(sprintf("[Groups] <info>%s</info> ", implode(', ', $this->options['group'])));
         }
@@ -287,17 +316,72 @@ class Run extends Command
             $this->options['steps'] = true;
         }
 
+        if (!$test) {
+            // Check if suite is given and is in an included path
+            if (!empty($suite) && !empty($config['include'])) {
+                $isIncludeTest = false;
+                // Remember original projectDir
+                $projectDir = Configuration::projectDir();
+
+                foreach ($config['include'] as $include) {
+                    // Find if the suite begins with an include path
+                    if (strpos($suite, $include) === 0) {
+                        // Use include config
+                        $config = Configuration::config($projectDir.$include);
+
+                        if (!isset($config['paths']['tests'])) {
+                            throw new \RuntimeException(
+                                sprintf("Included '%s' has no tests path configured", $include)
+                            );
+                        }
+
+                        $testsPath = $include . DIRECTORY_SEPARATOR.  $config['paths']['tests'];
+
+                        try {
+                            list(, $suite, $test) = $this->matchTestFromFilename($suite, $testsPath);
+                            $isIncludeTest = true;
+                        } catch (\InvalidArgumentException $e) {
+                            // Incorrect include match, continue trying to find one
+                            continue;
+                        }
+                    } else {
+                        $result = $this->matchSingleTest($suite, $config);
+                        if ($result) {
+                            list(, $suite, $test) = $result;
+                        }
+                    }
+                }
+
+                // Restore main config
+                if (!$isIncludeTest) {
+                    $config = Configuration::config($projectDir);
+                }
+            } elseif (!empty($suite)) {
+                $result = $this->matchSingleTest($suite, $config);
+                if ($result) {
+                    list(, $suite, $test) = $result;
+                }
+            }
+        }
+
         if ($test) {
             $filter = $this->matchFilteredTestName($test);
             $userOptions['filter'] = $filter;
         }
 
+        if (!$this->options['silent'] && $config['settings']['shuffle']) {
+            $this->output->writeln(
+                "[Seed] <info>" . $userOptions['seed'] . "</info>"
+            );
+        }
+
         $this->codecept = new Codecept($userOptions);
 
         if ($suite and $test) {
-            $this->codecept->run($suite, $test);
+            $this->codecept->run($suite, $test, $config);
         }
 
+        // Run all tests of given suite or all suites
         if (!$test) {
             $suites = $suite ? explode(',', $suite) : Configuration::suites();
             $this->executed = $this->runSuites($suites, $this->options['skip']);
@@ -321,6 +405,38 @@ class Run extends Command
             if (!$this->codecept->getResult()->wasSuccessful()) {
                 exit(1);
             }
+        }
+    }
+
+    protected function matchSingleTest($suite, $config)
+    {
+        // Workaround when codeception.yml is inside tests directory and tests path is set to "."
+        // @see https://github.com/Codeception/Codeception/issues/4432
+        if (isset($config['paths']['tests']) && $config['paths']['tests'] === '.' && !preg_match('~^\.[/\\\]~', $suite)) {
+            $suite = './' . $suite;
+        }
+
+        // running a single test when suite has a configured path
+        if (isset($config['suites'])) {
+            foreach ($config['suites'] as $s => $suiteConfig) {
+                if (!isset($suiteConfig['path'])) {
+                    continue;
+                }
+                $testsPath = $config['paths']['tests'] . DIRECTORY_SEPARATOR . $suiteConfig['path'];
+                if ($suiteConfig['path'] === '.') {
+                    $testsPath = $config['paths']['tests'];
+                }
+                if (preg_match("~^$testsPath/(.*?)$~", $suite, $matches)) {
+                    $matches[2] = $matches[1];
+                    $matches[1] = $s;
+                    return $matches;
+                }
+            }
+        }
+
+        // Run single test without included tests
+        if (! Configuration::isEmpty() && strpos($suite, $config['paths']['tests']) === 0) {
+            return $this->matchTestFromFilename($suite, $config['paths']['tests']);
         }
     }
 
@@ -380,10 +496,11 @@ class Run extends Command
         return $executed;
     }
 
-    protected function matchTestFromFilename($filename, $tests_path)
+    protected function matchTestFromFilename($filename, $testsPath)
     {
+        $testsPath = str_replace(['//', '\/', '\\'], '/', $testsPath);
         $filename = str_replace(['//', '\/', '\\'], '/', $filename);
-        $res = preg_match("~^$tests_path/(.*?)(?>/(.*))?$~", $filename, $matches);
+        $res = preg_match("~^$testsPath/(.*?)(?>/(.*))?$~", $filename, $matches);
 
         if (!$res) {
             throw new \InvalidArgumentException("Test file can't be matched");
@@ -419,11 +536,11 @@ class Run extends Command
         $tokens = explode(' ', $request);
         foreach ($tokens as $token) {
             $token = preg_replace('~=.*~', '', $token); // strip = from options
-            
+
             if (empty($token)) {
                 continue;
             }
-            
+
             if ($token == '--') {
                 break; // there should be no options after ' -- ', only arguments
             }
@@ -442,26 +559,29 @@ class Run extends Command
     {
         $values = [];
         $request = (string)$input;
-        foreach ($options as $option) {
+        foreach ($options as $option => $defaultValue) {
             if (strpos($request, "--$option")) {
-                $values[$option] = $input->hasParameterOption($option)
-                    ? $input->getParameterOption($option)
-                    : $input->getOption($option);
+                $values[$option] = $input->getOption($option) ? $input->getOption($option) : $defaultValue;
             } else {
                 $values[$option] = false;
             }
         }
+
         return $values;
     }
 
-    private function ensureCurlIsAvailable()
+    /**
+     * @param string $ext
+     * @throws \Exception
+     */
+    private function ensurePhpExtIsAvailable($ext)
     {
-        if (!extension_loaded('curl')) {
+        if (!extension_loaded(strtolower($ext))) {
             throw new \Exception(
-                "Codeception requires CURL extension installed to make tests run\n"
-                . "If you are not sure, how to install CURL, please refer to StackOverflow\n\n"
+                "Codeception requires \"{$ext}\" extension installed to make tests run\n"
+                . "If you are not sure, how to install \"{$ext}\", please refer to StackOverflow\n\n"
                 . "Notice: PHP for Apache/Nginx and CLI can have different php.ini files.\n"
-                . "Please make sure that your PHP you run from console has CURL enabled."
+                . "Please make sure that your PHP you run from console has \"{$ext}\" enabled."
             );
         }
     }

@@ -17,13 +17,13 @@ class Asserts extends CodeceptionModule
      * Regular example:
      * ```php
      * <?php
-     * $I->assertEquals($element->getChildrenCount(), 5);
+     * $I->assertEquals(5, $element->getChildrenCount());
      * ```
      *
      * Floating-point example:
      * ```php
      * <?php
-     * $I->assertEquals($calculator->add(0.1, 0.2), 0.3, 'Calculator should add the two numbers correctly.', 0.01);
+     * $I->assertEquals(0.3, $calculator->add(0.1, 0.2), 'Calculator should add the two numbers correctly.', 0.01);
      * ```
      *
      * @param        $expected
@@ -44,13 +44,13 @@ class Asserts extends CodeceptionModule
      * Regular example:
      * ```php
      * <?php
-     * $I->assertNotEquals($element->getChildrenCount(), 0);
+     * $I->assertNotEquals(0, $element->getChildrenCount());
      * ```
      *
      * Floating-point example:
      * ```php
      * <?php
-     * $I->assertNotEquals($calculator->add(0.1, 0.2), 0.4, 'Calculator should add the two numbers correctly.', 0.01);
+     * $I->assertNotEquals(0.4, $calculator->add(0.1, 0.2), 'Calculator should add the two numbers correctly.', 0.01);
      * ```
      *
      * @param        $expected
@@ -183,6 +183,30 @@ class Asserts extends CodeceptionModule
         parent::assertNotRegExp($pattern, $string, $message);
     }
 
+    /**
+     * Checks that a string starts with the given prefix.
+     *
+     * @param string $prefix
+     * @param string $string
+     * @param string $message
+     */
+    public function assertStringStartsWith($prefix, $string, $message = '')
+    {
+        parent::assertStringStartsWith($prefix, $string, $message);
+    }
+
+    /**
+     * Checks that a string doesn't start with the given prefix.
+     *
+     * @param string $prefix
+     * @param string $string
+     * @param string $message
+     */
+    public function assertStringStartsNotWith($prefix, $string, $message = '')
+    {
+        parent::assertStringStartsNotWith($prefix, $string, $message);
+    }
+
 
     /**
      * Checks that variable is empty.
@@ -240,6 +264,17 @@ class Asserts extends CodeceptionModule
     }
 
     /**
+     * Checks that the condition is NOT true (everything but true)
+     *
+     * @param        $condition
+     * @param string $message
+     */
+    public function assertNotTrue($condition, $message = '')
+    {
+        parent::assertNotTrue($condition, $message);
+    }
+
+    /**
      * Checks that condition is negative.
      *
      * @param        $condition
@@ -248,6 +283,17 @@ class Asserts extends CodeceptionModule
     public function assertFalse($condition, $message = '')
     {
         parent::assertFalse($condition, $message);
+    }
+
+    /**
+     * Checks that the condition is NOT false (everything but false)
+     *
+     * @param        $condition
+     * @param string $message
+     */
+    public function assertNotFalse($condition, $message = '')
+    {
+        parent::assertNotFalse($condition, $message);
     }
 
     /**
@@ -319,6 +365,19 @@ class Asserts extends CodeceptionModule
     public function assertArrayNotHasKey($key, $actual, $description = '')
     {
         parent::assertArrayNotHasKey($key, $actual, $description);
+    }
+
+    /**
+     * Checks that array contains subset.
+     *
+     * @param array  $subset
+     * @param array  $array
+     * @param bool   $strict
+     * @param string $message
+     */
+    public function assertArraySubset($subset, $array, $strict = false, $message = '')
+    {
+        parent::assertArraySubset($subset, $array, $strict, $message);
     }
 
     /**
@@ -428,8 +487,8 @@ class Asserts extends CodeceptionModule
                 ));
             }
             $this->assertTrue(true); // increment assertion counter
-             return;
+            return;
         }
-        $this->fail("Expected exception to be thrown, but nothing was caught");
+        $this->fail("Expected exception of $class to be thrown, but nothing was caught");
     }
 }

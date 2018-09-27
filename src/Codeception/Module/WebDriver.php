@@ -543,10 +543,7 @@ class WebDriver extends CodeceptionModule implements
             // Dump out latest Selenium logs
             $logs = $this->webDriver->manage()->getAvailableLogTypes();
             foreach ($logs as $logType) {
-                $logEntries = array_slice(
-                    $this->webDriver->manage()->getLog($logType),
-                    -$this->config['debug_log_entries']
-                );
+                $logEntries = $this->webDriver->manage()->getLog($logType);
 
                 if (empty($logEntries)) {
                     $this->debugSection("Selenium {$logType} Logs", " EMPTY ");
@@ -554,8 +551,14 @@ class WebDriver extends CodeceptionModule implements
                 }
                 $this->debugSection("Selenium {$logType} Logs", "\n" . $this->formatLogEntries($logEntries));
 
-                if ($logType === 'browser' && $this->config['log_js_errors']
-                    && ($test instanceof ScenarioDriven)
+                if ($logType === 'browser' &&
+                    $this->config['log_js'] &&
+                    ($test instanceof ScenarioDriven)
+                ) {
+                    $this->logJS($test, $logEntries, $this->config['debug_log_entries']);
+                }elseif ($logType === 'browser' &&
+                    $this->config['log_js_errors'] &&
+                    ($test instanceof ScenarioDriven)
                 ) {
                     $this->logJSErrors($test, $logEntries);
                 }
@@ -585,6 +588,32 @@ class WebDriver extends CodeceptionModule implements
             $formattedLogs .= "{$time} {$logEntry['level']} - {$logEntry['message']}\n";
         }
         return $formattedLogs;
+    }
+
+    /**
+     * Logs JavaScript errors as comments.
+     *
+     * @param ScenarioDriven $test
+     * @param array $browserLogEntries
+     */
+    protected function logJS(ScenarioDriven $test, array $browserLogEntries, $entries_count)
+    {
+        $count = 0;
+        foreach ($browserLogEntries as $logEntry) {
+            if (true === isset($logEntry['level']) &&
+                true === isset($logEntry['message']) &&
+                $logEntry['level'] != 'WARNING' &&
+                $logEntry['level'] != 'DEBUG' &&
+                ($entries_count == 0 || $entries_count > $count)
+            ) {
+                // Timestamp is in milliseconds, but date() requires seconds.
+                $time = date('H:i:s', $logEntry['timestamp'] / 1000) .
+                    // Append the milliseconds to the end of the time string
+                    '.' . ($logEntry['timestamp'] % 1000);
+                $test->getScenario()->comment("{$time} {$logEntry['level']} - {$logEntry['message']}");
+                $count++;
+            }
+        }
     }
 
     /**

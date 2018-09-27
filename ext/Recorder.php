@@ -241,9 +241,10 @@ EOF;
         $this->webDriverModule = null;
         if (!$this->hasModule($this->config['module'])) {
             $this->writeln("Recorder is disabled, no available modules");
+
             return;
         }
-        $this->seed = uniqid();
+        $this->seed            = uniqid();
         $this->webDriverModule = $this->getModule($this->config['module']);
         $this->errors = [];
         $this->errorMessages = [];
@@ -253,10 +254,12 @@ EOF;
                 'You should pass module which implements Codeception\Lib\Interfaces\ScreenshotSaver interface'
             );
         }
-        $this->writeln(sprintf(
-            "⏺ <bold>Recording</bold> ⏺ step-by-step screenshots will be saved to <info>%s</info>",
-            codecept_output_dir()
-        ));
+        $this->writeln(
+            sprintf(
+                "⏺ <bold>Recording</bold> ⏺ step-by-step screenshots will be saved to <info>%s</info>",
+                codecept_output_dir()
+            )
+        );
         $this->writeln("Directory Format: <debug>record_{$this->seed}_{testname}</debug> ----");
     }
 
@@ -289,6 +292,7 @@ EOF;
                 $this->writeln("⏺ Screenshot saved into: <info>file://{$screenshotPath}</info>");
             }
         }
+
     }
 
     public function before(TestEvent $e)
@@ -296,13 +300,13 @@ EOF;
         if (!$this->webDriverModule) {
             return;
         }
-        $this->dir = null;
+        $this->dir     = null;
         $this->stepNum = 0;
         $this->slides = [];
 
         $testName = preg_replace('~\W~', '_', Descriptor::getTestAsString($e->getTest()));
         $this->dir = codecept_output_dir() . "record_{$this->seed}_$testName";
-        @mkdir($this->dir);
+        mkdir($this->dir);
     }
 
     public function cleanup(TestEvent $e)
@@ -312,6 +316,7 @@ EOF;
         }
         if (!$this->config['delete_successful']) {
             $this->persist($e);
+
             return;
         }
 
@@ -379,6 +384,7 @@ EOF;
             $testName = Descriptor::getTestSignature($e->getTest()). ' - '.ucfirst($e->getTest()->getFeature());
             $this->recordedTests[$testName] = substr($indexFile, strlen(codecept_output_dir()));
         }
+
     }
 
     public function afterStep(StepEvent $e)
@@ -389,6 +395,7 @@ EOF;
         if ($e->getStep() instanceof CommentStep) {
             return;
         }
+
         if ($this->isStepIgnored($e->getStep())) {
             return;
         }
@@ -396,6 +403,9 @@ EOF;
         $filename = str_pad($this->stepNum, 3, "0", STR_PAD_LEFT) . '.png';
 
         try {
+            if (!is_dir($this->dir)) {
+                @mkdir($this->dir);
+            }
             $this->webDriverModule->webDriver->takeScreenshot($this->dir . DIRECTORY_SEPARATOR . $filename);
         } catch (\Exception $exception) {
             $testPath = codecept_relative_path(Descriptor::getTestFullName($e->getTest()));

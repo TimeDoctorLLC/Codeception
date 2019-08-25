@@ -135,7 +135,7 @@ Use it in Helpers when you want to retrieve response of request performed by ano
 // in Helper class
 public function seeResponseContains($text)
 {
-   $this->assertContains($text, $this->getModule('Symfony')->_getResponseContent(), "response contains");
+   $this->assertStringContainsString($text, $this->getModule('Symfony')->_getResponseContent(), "response contains");
 }
 ?>
 ```
@@ -299,7 +299,7 @@ $I->click('Submit');
 // CSS button
 $I->click('#form input[type=submit]');
 // XPath
-$I->click('//form/*[@type=submit]');
+$I->click('//form/*[@type="submit"]');
 // link in context
 $I->click('Logout', '#nav');
 // using strict locator
@@ -358,7 +358,7 @@ But will ignore strings like:
 For checking the raw source code, use `seeInSource()`.
 
  * `param string` $text
- * `param string` $selector optional
+ * `param array|string` $selector optional
 
 
 ### dontSeeCheckboxIsChecked
@@ -407,7 +407,7 @@ Checks that current url doesn't match the given regular expression.
 ``` php
 <?php
 // to match root url
-$I->dontSeeCurrentUrlMatches('~$/users/(\d+)~');
+$I->dontSeeCurrentUrlMatches('~^/users/(\d+)~');
 ?>
 ```
 
@@ -629,7 +629,7 @@ If no parameters are provided, the full URI is returned.
 
 ``` php
 <?php
-$user_id = $I->grabFromCurrentUrl('~$/user/(\d+)/~');
+$user_id = $I->grabFromCurrentUrl('~^/user/(\d+)/~');
 $uri = $I->grabFromCurrentUrl();
 ?>
 ```
@@ -686,22 +686,6 @@ $em = $I->grabService('doctrine');
 
  * `param` $service
  * `[Part]` services
-
-
-### grabServiceFromContainer
- 
-Grabs a service from Symfony DIC container.
-Recommended to use for unit testing.
-
-``` php
-<?php
-$em = $I->grabServiceFromContainer('doctrine');
-?>
-```
-
- * `param` $service
- * `[Part]` services
-@deprecated Use grabService instead
 
 
 ### grabTextFrom
@@ -763,11 +747,32 @@ $I->haveHttpHeader('Client&#95;Id', 'Codeception');
 Invalidate previously cached routes.
 
 
+### makeHtmlSnapshot
+ 
+Saves current page's HTML into a temprary file.
+Use this method in debug mode within an interactive pause to get a source code of current page.
+
+```php
+<?php
+$I->makeHtmlSnapshot('edit_page');
+// saved to: tests/_output/debug/edit_page.html
+$I->makeHtmlSnapshot();
+// saved to: tests/_output/debug/2017-05-26_14-24-11_4b3403665fea6.html
+```
+
+ * `param null` $name
+
+
 ### moveBack
  
 Moves back in history.
 
  * `param int` $numberOfSteps (default value 1)
+
+
+### onReconfigure
+ 
+HOOK to be executed when config changes with `_reconfigure`.
 
 
 ### persistService
@@ -839,7 +844,7 @@ But will *not* be true for strings like:
 For checking the raw source code, use `seeInSource()`.
 
  * `param string` $text
- * `param string` $selector optional
+ * `param array|string` $selector optional
 
 
 ### seeCheckboxIsChecked
@@ -909,7 +914,7 @@ Checks that the current URL matches the given regular expression.
 ``` php
 <?php
 // to match root url
-$I->seeCurrentUrlMatches('~$/users/(\d+)~');
+$I->seeCurrentUrlMatches('~^/users/(\d+)~');
 ?>
 ```
 
@@ -942,6 +947,9 @@ $I->seeElement(['css' => 'form input'], ['name' => 'login']);
  
 Checks if the desired number of emails was sent.
 If no argument is provided then at least one email must be sent to satisfy the check.
+The email is checked using Symfony's profiler. If your app performs a redirect after sending the email,
+you need to tell Codeception to not follow this redirect, using REST Module's [stopFollowingRedirects](
+https://codeception.com/docs/modules/REST#stopFollowingRedirects) method.
 
 ``` php
 <?php
@@ -1498,4 +1506,4 @@ Remove service $serviceName from the lists of persistent services.
 
  * `param string` $serviceName
 
-<p>&nbsp;</p><div class="alert alert-warning">Module reference is taken from the source code. <a href="https://github.com/Codeception/Codeception/tree/2.4/src/Codeception/Module/Symfony.php">Help us to improve documentation. Edit module reference</a></div>
+<p>&nbsp;</p><div class="alert alert-warning">Module reference is taken from the source code. <a href="https://github.com/Codeception/Codeception/tree/3.0/src/Codeception/Module/Symfony.php">Help us to improve documentation. Edit module reference</a></div>

@@ -98,10 +98,69 @@ class RunCest
      *
      * @param CliGuy $I
      */
+    public function runPhpUnitXmlReport(\CliGuy $I)
+    {
+        $I->wantTo('check phpunit xml reports');
+        $I->executeCommand('run dummy --phpunit-xml');
+        $I->seeInShellOutput('PHPUNIT-XML report generated in');
+        $I->seeFileFound('phpunit-report.xml', 'tests/_output');
+        $I->seeInThisFile('<?xml');
+        if (\PHPUnit\Runner\Version::series() < 6) {
+            $I->seeInThisFile('<testsuite name="dummy" tests="6" assertions="3" failures="0" errors="0" time=');
+        } else {
+            $I->seeInThisFile('<testsuite name="dummy" tests="6" assertions="3" errors="0" failures="0" skipped="0" time=');
+        }
+        $I->seeThisFileMatches('/<testsuite name="AnotherCest" file=".*?AnotherCest.php"/');
+        $I->seeThisFileMatches('/<testsuite name="AnotherTest" file=".*?AnotherTest.php"/');
+        if (\PHPUnit\Runner\Version::series() < 6) {
+            $I->seeThisFileMatches('/<testsuite name="AnotherTest" file=".*?AnotherTest.php" tests="2" assertions="2" failures="0" errors="0" time=/');
+        } else {
+            $I->seeThisFileMatches('/<testsuite name="AnotherTest" file=".*?AnotherTest.php" tests="2" assertions="2" errors="0" failures="0" skipped="0" time=/');
+        }
+        //FileExistsCept file
+        $I->seeInThisFile('<testsuite name="FileExists"');
+        $I->seeInThisFile('<testcase name="FileExists"');
+        $I->seeInThisFile('feature="');
+    }
+
+    /**
+     * @group reports
+     * @param CliGuy $I
+     */
+    public function runPhpUnitXmlReportsInStrictMode(\CliGuy $I)
+    {
+        $I->wantTo('check phpunit xml in strict mode');
+        $I->executeCommand('run dummy --phpunit-xml -c codeception_strict_xml.yml');
+        $I->seeInShellOutput('PHPUNIT-XML report generated in');
+        $I->seeFileFound('phpunit-report.xml', 'tests/_output');
+        $I->seeInThisFile('<?xml');
+        if (\PHPUnit\Runner\Version::series() < 6) {
+            $I->seeInThisFile('<testsuite name="dummy" tests="6" assertions="3" failures="0" errors="0" time=');
+        } else {
+            $I->seeInThisFile('<testsuite name="dummy" tests="6" assertions="3" errors="0" failures="0" skipped="0" time=');
+        }
+        $I->seeThisFileMatches('/<testsuite name="AnotherCest" file=".*?AnotherCest.php"/');
+        $I->seeThisFileMatches('/<testsuite name="AnotherTest" file=".*?AnotherTest.php"/');
+        if (\PHPUnit\Runner\Version::series() < 6) {
+            $I->seeThisFileMatches('/<testsuite name="AnotherTest" file=".*?AnotherTest.php" tests="2" assertions="2" failures="0" errors="0" time=/');
+        } else {
+            $I->seeThisFileMatches('/<testsuite name="AnotherTest" file=".*?AnotherTest.php" tests="2" assertions="2" errors="0" failures="0" skipped="0" time=/');
+        }
+        //FileExistsCept file
+        $I->seeInThisFile('<testsuite name="FileExists"');
+        $I->seeInThisFile('<testcase name="FileExists"');
+        $I->dontSeeInThisFile('feature="');
+    }
+
+    /**
+     * @group reports
+     *
+     * @param CliGuy $I
+     */
     public function runCustomReport(\CliGuy $I)
     {
         if (\PHPUnit\Runner\Version::series() >= 7) {
-            throw new \Codeception\Exception\Skip('Not for PHPUnit 7');
+            throw new \PHPUnit\Framework\SkippedTestError('Not for PHPUnit 7');
         }
         $I->executeCommand('run dummy --report -c codeception_custom_report.yml');
         $I->seeInShellOutput('FileExistsCept: Check config exists');
@@ -259,7 +318,7 @@ EOF
      */
     public function runTestWithFailedScenario(\CliGuy $I, $scenario)
     {
-        if (!extension_loaded('xdebug') && !defined('HHVM_VERSION')) {
+        if (!extension_loaded('xdebug')) {
             $scenario->skip("Xdebug not loaded");
         }
         $I->executeCommand('run scenario FailedCept --steps --no-exit');
@@ -289,7 +348,7 @@ EOF
      */
     public function runTestWithSubSteps(\CliGuy $I, $scenario)
     {
-        if (!extension_loaded('xdebug') && !defined('HHVM_VERSION')) {
+        if (!extension_loaded('xdebug')) {
             $scenario->skip("Xdebug not loaded");
         }
 
@@ -299,10 +358,6 @@ EOF
 Scenario --
  I am in path "."
  I see code coverage files are present
-EOF
-        );
-        // I split this assertion into two, because extra space is printed after "present" on HHVM
-        $I->seeInShellOutput(<<<EOF
    I see file found "c3.php"
    I see file found "composer.json"
    I see in this file "$file"
@@ -321,7 +376,12 @@ EOF
         $I->executeCommand('run unit DependsTest --no-exit');
         $I->seeInShellOutput('Skipped: 1');
         $I->executeCommand('run unit --no-exit');
-        $I->seeInShellOutput('Skipped: 2');
+        if (version_compare(\PHPUnit\Runner\Version::id(), '7.5.5', '<')) {
+            $I->seeInShellOutput('Skipped: 2');
+        } else {
+            //one test fails with Warning instead of Skipped with  PHPUnit >= 7.5.5
+            $I->seeInShellOutput('Skipped: 1');
+        }
     }
 
     public function runGherkinTest(CliGuy $I)
@@ -423,7 +483,7 @@ EOF
     public function overrideConfigOptionsToChangeReporter(CliGuy $I)
     {
         if (!class_exists('PHPUnit_Util_Log_TeamCity')) {
-            throw new \Codeception\Exception\Skip('Reporter does not exist for this PHPUnit version');
+            throw new \PHPUnit\Framework\SkippedTestError('Reporter does not exist for this PHPUnit version');
         }
         $I->executeCommand('run scenario --report -o "reporters: report: PHPUnit_Util_Log_TeamCity" --no-exit');
         $I->seeInShellOutput('##teamcity[testStarted');
@@ -534,6 +594,43 @@ EOF
         $newOutput = preg_replace('~\(\d\.\d+s\)~m', '', $newOutput);
 
         $I->assertNotEquals($output, $newOutput, 'order of tests is the same');
+        }
+
+    public function runCustomBootstrap(\CliGuy $I)
+    {
+        $I->wantTo('execute one test');
+        $I->executeCommand('run dummy --bootstrap tests/_init.php');
+        $I->seeInShellOutput('--INIT--');
+        $I->seeInShellOutput("'hello' => 'world'");
+        $I->seeInShellOutput("OK (");
+    }
+
+    public function throwErrorIfBootstrapNotFound(\CliGuy $I)
+    {
+        $I->wantTo('execute one test');
+        $I->executeCommand('run dummy --bootstrap tests/init.php --no-exit 2>&1', false);
+        $I->dontSeeInShellOutput('--INIT--');
+        $I->seeInShellOutput("can't be loaded");
+        $I->dontSeeInShellOutput("OK (");
+    }
+
+
+    public function runBootstrapInGlobalConfig(\CliGuy $I)
+    {
+        $I->wantTo('execute one test');
+        $I->executeCommand('run dummy -c codeception.bootstrap.yml');
+        $I->seeInShellOutput('--INIT--');
+        $I->seeInShellOutput("'hello' => 'world'");
+        $I->seeInShellOutput("OK (");
+    }
+
+    public function runBootstrapInSuiteConfig(\CliGuy $I)
+    {
+        $I->wantTo('execute one test');
+        $I->executeCommand('run dummy.bootstrap');
+        $I->seeInShellOutput('--INIT--');
+        $I->seeInShellOutput("'hello' => 'world'");
+        $I->seeInShellOutput("OK (");
     }
 
 }

@@ -80,12 +80,20 @@ class Yii2 extends Client
      */
     public $recreateApplication = false;
 
+    /**
+     * @var bool whether to close the session in between requests inside a single test, if recreateApplication is set to true
+     */
+    public $closeSessionOnRecreateApplication = true;
+
 
     private $emails = [];
+
     /**
      * @return \yii\web\Application
+     *
+     * @deprecated since 2.5, will become protected in 3.0. Directly access to \Yii::$app if you need to interact with it.
      */
-    protected function getApplication()
+    public function getApplication()
     {
         if (!isset(Yii::$app)) {
             $this->startApp();
@@ -93,10 +101,15 @@ class Yii2 extends Client
         return Yii::$app;
     }
 
-    public function resetApplication()
+    /**
+     * @param bool $closeSession
+     */
+    public function resetApplication($closeSession = true)
     {
         codecept_debug('Destroying application');
-        $this->closeSession();
+        if (true === $closeSession) {
+            $this->closeSession();
+        }
         Yii::$app = null;
         \yii\web\UploadedFile::reset();
         if (method_exists(\yii\base\Event::className(), 'offAll')) {
@@ -109,6 +122,7 @@ class Yii2 extends Client
 
     /**
      * Finds and logs in a user
+     * @internal
      * @param $user
      * @throws ConfigurationException
      * @throws \RuntimeException
@@ -135,6 +149,7 @@ class Yii2 extends Client
 
     /**
      * Masks a value
+     * @internal
      * @param string $val
      * @return string
      * @see \yii\base\Security::maskToken
@@ -145,6 +160,7 @@ class Yii2 extends Client
     }
 
     /**
+     * @internal
      * @param string $name The name of the cookie
      * @param string $value The value of the cookie
      * @return string The value to send to the browser
@@ -159,6 +175,7 @@ class Yii2 extends Client
     }
 
     /**
+     * @internal
      * @return array List of regex patterns for recognized domain names
      */
     public function getInternalDomains()
@@ -178,6 +195,7 @@ class Yii2 extends Client
     }
 
     /**
+     * @internal
      * @return array List of sent emails
      */
     public function getEmails()
@@ -185,6 +203,9 @@ class Yii2 extends Client
         return $this->emails;
     }
 
+    /**
+     * @internal
+     */
     public function getComponent($name)
     {
         $app = $this->getApplication();
@@ -210,7 +231,7 @@ class Yii2 extends Client
             $template = preg_replace_callback(
                 '/<(?:\w+):?([^>]+)?>/u',
                 function ($matches) use (&$parameters) {
-                    $key = '#' . count($parameters) . '#';
+                    $key = '__' . count($parameters) . '__';
                     $parameters[$key] = isset($matches[1]) ? $matches[1] : '\w+';
                     return $key;
                 },
@@ -224,6 +245,7 @@ class Yii2 extends Client
 
     /**
      * Gets the name of the CSRF param.
+     * @internal
      * @return string
      */
     public function getCsrfParamName()
@@ -232,6 +254,7 @@ class Yii2 extends Client
     }
 
     /**
+     * @internal
      * @param $params
      * @return mixed
      */
@@ -436,6 +459,7 @@ class Yii2 extends Client
 
     /**
      * This functions closes the session of the application, if the application exists and has a session.
+     * @internal
      */
     public function closeSession()
     {
@@ -528,7 +552,7 @@ TEXT
     protected function beforeRequest()
     {
         if ($this->recreateApplication) {
-            $this->resetApplication();
+            $this->resetApplication($this->closeSessionOnRecreateApplication);
             return;
         }
 

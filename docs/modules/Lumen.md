@@ -80,7 +80,7 @@ Use it in Helpers when you want to retrieve response of request performed by ano
 // in Helper class
 public function seeResponseContains($text)
 {
-   $this->assertContains($text, $this->getModule('Lumen')->_getResponseContent(), "response contains");
+   $this->assertStringContainsString($text, $this->getModule('Lumen')->_getResponseContent(), "response contains");
 }
 ?>
 ```
@@ -265,7 +265,7 @@ $I->click('Submit');
 // CSS button
 $I->click('#form input[type=submit]');
 // XPath
-$I->click('//form/*[@type=submit]');
+$I->click('//form/*[@type="submit"]');
 // link in context
 $I->click('Logout', '#nav');
 // using strict locator
@@ -324,7 +324,7 @@ But will ignore strings like:
 For checking the raw source code, use `seeInSource()`.
 
  * `param string` $text
- * `param string` $selector optional
+ * `param array|string` $selector optional
 
 
 ### dontSeeAuthentication
@@ -378,7 +378,7 @@ Checks that current url doesn't match the given regular expression.
 ``` php
 <?php
 // to match root url
-$I->dontSeeCurrentUrlMatches('~$/users/(\d+)~');
+$I->dontSeeCurrentUrlMatches('~^/users/(\d+)~');
 ?>
 ```
 
@@ -617,7 +617,7 @@ If no parameters are provided, the full URI is returned.
 
 ``` php
 <?php
-$user_id = $I->grabFromCurrentUrl('~$/user/(\d+)/~');
+$user_id = $I->grabFromCurrentUrl('~^/user/(\d+)/~');
 $uri = $I->grabFromCurrentUrl();
 ?>
 ```
@@ -899,6 +899,63 @@ $I->haveSingleton('My\Interface', 'My\Singleton');
  * `param` $concrete
 
 
+### make
+ 
+Use Lumen's model factory to make a model instance.
+Can only be used with Lumen 5.1 and later.
+
+``` php
+<?php
+$I->make('App\User');
+$I->make('App\User', ['name' => 'John Doe']);
+$I->make('App\User', [], 'admin');
+?>
+```
+
+@see https://lumen.laravel.com/docs/master/testing#model-factories
+ * `param string` $model
+ * `param array` $attributes
+ * `param string` $name
+ * `[Part]` orm
+
+
+### makeHtmlSnapshot
+ 
+Saves current page's HTML into a temprary file.
+Use this method in debug mode within an interactive pause to get a source code of current page.
+
+```php
+<?php
+$I->makeHtmlSnapshot('edit_page');
+// saved to: tests/_output/debug/edit_page.html
+$I->makeHtmlSnapshot();
+// saved to: tests/_output/debug/2017-05-26_14-24-11_4b3403665fea6.html
+```
+
+ * `param null` $name
+
+
+### makeMultiple
+ 
+Use Laravel's model factory to make multiple model instances.
+Can only be used with Lumen 5.1 and later.
+
+``` php
+<?php
+$I->makeMultiple('App\User', 10);
+$I->makeMultiple('App\User', 10, ['name' => 'John Doe']);
+$I->makeMultiple('App\User', 10, [], 'admin');
+?>
+```
+
+@see https://lumen.laravel.com/docs/master/testing#model-factories
+ * `param string` $model
+ * `param int` $times
+ * `param array` $attributes
+ * `param string` $name
+ * `[Part]` orm
+
+
 ### moveBack
  
 Moves back in history.
@@ -946,7 +1003,7 @@ But will *not* be true for strings like:
 For checking the raw source code, use `seeInSource()`.
 
  * `param string` $text
- * `param string` $selector optional
+ * `param array|string` $selector optional
 
 
 ### seeAuthentication
@@ -1006,7 +1063,7 @@ Checks that the current URL matches the given regular expression.
 ``` php
 <?php
 // to match root url
-$I->seeCurrentUrlMatches('~$/users/(\d+)~');
+$I->seeCurrentUrlMatches('~^/users/(\d+)~');
 ?>
 ```
 
@@ -1582,4 +1639,4 @@ $I->uncheckOption('#notify');
 
  * `param` $option
 
-<p>&nbsp;</p><div class="alert alert-warning">Module reference is taken from the source code. <a href="https://github.com/Codeception/Codeception/tree/2.4/src/Codeception/Module/Lumen.php">Help us to improve documentation. Edit module reference</a></div>
+<p>&nbsp;</p><div class="alert alert-warning">Module reference is taken from the source code. <a href="https://github.com/Codeception/Codeception/tree/3.0/src/Codeception/Module/Lumen.php">Help us to improve documentation. Edit module reference</a></div>

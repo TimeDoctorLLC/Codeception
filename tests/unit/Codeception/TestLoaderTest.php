@@ -4,14 +4,14 @@
  * Class TestLoaderTest
  * @group load
  */
-class TestLoaderTest extends \PHPUnit\Framework\TestCase
+class TestLoaderTest extends \Codeception\PHPUnit\TestCase
 {
     /**
      * @var \Codeception\Test\Loader
      */
     protected $testLoader;
 
-    protected function setUp()
+    protected function _setUp()
     {
         $this->testLoader = new \Codeception\Test\Loader(['path' => \Codeception\Configuration::dataDir()]);
     }
@@ -88,5 +88,25 @@ class TestLoaderTest extends \PHPUnit\Framework\TestCase
     protected function assertContainsTestName($name, $testNames)
     {
         $this->assertContains($name, $testNames, "$name not found in tests");
+    }
+
+    public function testDataProviderReturningArray()
+    {
+        $this->testLoader->loadTest('SimpleWithDataProviderArrayCest.php');
+        $tests = $this->testLoader->getTests();
+        /** @var \PHPUnit\Framework\DataProviderTestSuite $firstTest */
+        $firstTest = $tests[0];
+
+        $this->assertEquals(5, $firstTest->count());
+    }
+
+    public function testDataProviderReturningGenerator()
+    {
+        $this->testLoader->loadTest('SimpleWithDataProviderYieldGeneratorCest.php');
+        $tests = $this->testLoader->getTests();
+        /** @var \PHPUnit\Framework\DataProviderTestSuite $firstTest */
+        $firstTest = $tests[0];
+
+        $this->assertEquals(5, $firstTest->count());
     }
 }

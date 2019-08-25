@@ -43,12 +43,24 @@ class Unit implements LoaderInterface
 
     protected function createTestFromPhpUnitMethod(\ReflectionClass $class, \ReflectionMethod $method)
     {
-        if (!\PHPUnit_Framework_TestSuite::isTestMethod($method)) {
-            return;
+        if (method_exists(\PHPUnit\Framework\TestSuite::class, 'isTestMethod')) {
+            //PHPUnit <8.2
+            if (!\PHPUnit\Framework\TestSuite::isTestMethod($method)) {
+                return;
+            }
+            $test = \PHPUnit\Framework\TestSuite::createTest($class, $method->name);
+        } elseif (method_exists(\PHPUnit\Util\Test::class, 'isTestMethod')) {
+            //PHPUnit >=8.2
+            if (!\PHPUnit\Util\Test::isTestMethod($method)) {
+                return;
+            }
+            $test = (new \PHPUnit\Framework\TestBuilder)->build($class, $method->name);
+        } else {
+            throw new \Exception('Unsupported version of PHPUnit, where is isTestMethod method?');
         }
-        $test = \PHPUnit_Framework_TestSuite::createTest($class, $method->name);
 
-        if ($test instanceof \PHPUnit_Framework_TestSuite_DataProvider) {
+
+        if ($test instanceof \PHPUnit\Framework\DataProviderTestSuite) {
             foreach ($test->tests() as $t) {
                 $this->enhancePhpunitTest($t);
             }
@@ -59,16 +71,15 @@ class Unit implements LoaderInterface
         return $test;
     }
 
-    protected function enhancePhpunitTest(\PHPUnit_Framework_TestCase $test)
+    protected function enhancePhpunitTest(\PHPUnit\Framework\Test $test)
     {
         $className = get_class($test);
         $methodName = $test->getName(false);
-        $dependencies = \PHPUnit_Util_Test::getDependencies($className, $methodName);
+        $dependencies = \PHPUnit\Util\Test::getDependencies($className, $methodName);
         $test->setDependencies($dependencies);
         if ($test instanceof UnitFormat) {
+            $test->getMetadata()->setParamsFromAnnotations(Annotation::forMethod($test, $methodName)->raw());
             $test->getMetadata()->setFilename(Descriptor::getTestFileName($test));
-            $test->getMetadata()->setDependencies($dependencies);
-            $test->getMetadata()->setEnv(Annotation::forMethod($test, $methodName)->fetchAll('env'));
         }
     }
 }

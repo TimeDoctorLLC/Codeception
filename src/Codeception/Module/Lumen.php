@@ -76,13 +76,13 @@ class Lumen extends Framework implements ActiveRecord, PartedModule
     public function __construct(ModuleContainer $container, $config = null)
     {
         $this->config = array_merge(
-            array(
+            [
                 'cleanup' => true,
                 'bootstrap' => 'bootstrap' . DIRECTORY_SEPARATOR . 'app.php',
                 'root' => '',
                 'packages' => 'workbench',
                 'url' => 'http://localhost',
-            ),
+            ],
             (array)$config
         );
 
@@ -155,7 +155,7 @@ class Lumen extends Framework implements ActiveRecord, PartedModule
 
         if (!file_exists($bootstrapFile)) {
             throw new ModuleConfigException(
-                $this->module,
+                $this,
                 "Lumen bootstrap file not found in $bootstrapFile.\n"
                 . "Please provide a valid path using the 'bootstrap' config param. "
             );
@@ -220,16 +220,18 @@ class Lumen extends Framework implements ActiveRecord, PartedModule
      */
     private function getRouteByName($routeName)
     {
-        foreach ($this->app->getRoutes() as $route) {
-            if ($route['method'] != 'GET') {
-                return;
-            }
-
+        if (isset($this->app->router) && $this->app->router instanceof \Laravel\Lumen\Routing\Router) {
+            $router = $this->app->router;
+        } else {
+            // backward compatibility with lumen 5.3
+            $router = $this->app;
+        }
+        foreach ($router->getRoutes() as $route) {
             if (isset($route['action']['as']) && $route['action']['as'] == $routeName) {
                 return $route;
             }
         }
-
+        $this->fail("Route with name '$routeName' does not exist");
         return null;
     }
 
@@ -266,7 +268,7 @@ class Lumen extends Framework implements ActiveRecord, PartedModule
     {
         if (!$user instanceof Authenticatable) {
             $this->fail(
-                'The user passed to amLoggedAs() should be an instance of \\Illuminate\\Contracts\\Auth\\Authenticable'
+                'The user passed to amLoggedAs() should be an instance of \\Illuminate\\Contracts\\Auth\\Authenticatable'
             );
         }
 
@@ -540,6 +542,64 @@ class Lumen extends Framework implements ActiveRecord, PartedModule
             return $this->modelFactory($model, $name, $times)->create($attributes);
         } catch (\Exception $e) {
             $this->fail("Could not create model: \n\n" . get_class($e) . "\n\n" . $e->getMessage());
+        }
+    }
+    
+
+    /**
+     * Use Lumen's model factory to make a model instance.
+     * Can only be used with Lumen 5.1 and later.
+     *
+     * ``` php
+     * <?php
+     * $I->make('App\User');
+     * $I->make('App\User', ['name' => 'John Doe']);
+     * $I->make('App\User', [], 'admin');
+     * ?>
+     * ```
+     *
+     * @see https://lumen.laravel.com/docs/master/testing#model-factories
+     * @param string $model
+     * @param array $attributes
+     * @param string $name
+     * @return mixed
+     * @part orm
+     */
+    public function make($model, $attributes = [], $name = 'default')
+    {
+        try {
+            return $this->modelFactory($model, $name)->make($attributes);
+        } catch (\Exception $e) {
+            $this->fail("Could not make model: \n\n" . get_class($e) . "\n\n" . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Use Laravel's model factory to make multiple model instances.
+     * Can only be used with Lumen 5.1 and later.
+     *
+     * ``` php
+     * <?php
+     * $I->makeMultiple('App\User', 10);
+     * $I->makeMultiple('App\User', 10, ['name' => 'John Doe']);
+     * $I->makeMultiple('App\User', 10, [], 'admin');
+     * ?>
+     * ```
+     *
+     * @see https://lumen.laravel.com/docs/master/testing#model-factories
+     * @param string $model
+     * @param int $times
+     * @param array $attributes
+     * @param string $name
+     * @return mixed
+     * @part orm
+     */
+    public function makeMultiple($model, $times, $attributes = [], $name = 'default')
+    {
+        try {
+            return $this->modelFactory($model, $name, $times)->make($attributes);
+        } catch (\Exception $e) {
+            $this->fail("Could not make model: \n\n" . get_class($e) . "\n\n" . $e->getMessage());
         }
     }
 

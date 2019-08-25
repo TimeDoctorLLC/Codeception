@@ -3,13 +3,13 @@ paths:
     log: tests/_output
     data: tests/_data
     helpers: tests/_support
+bootstrap: bootstrap_global.php
 settings:
-    bootstrap: _bootstrap.php
     colors: false
     log: false
 extensions:
     enabled:
-      - Codeception\Extension\SimpleOutput
+      - Codeception\Extension\SimpleReporter
       - Codeception\Extension\RunFailed
       - VerbosityLevelOutput
 modules:

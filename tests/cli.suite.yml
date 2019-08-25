@@ -5,3 +5,6 @@ modules:
         - Cli
         - CliHelper
         - CodeHelper
+        - Asserts
+steps:
+    - Codeception\Step\ConditionalAssertion

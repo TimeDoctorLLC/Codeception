@@ -10,7 +10,7 @@ class Sqlite extends Db
     protected $filename = '';
     protected $con = null;
 
-    public function __construct($dsn, $user, $password)
+    public function __construct($dsn, $user, $password, $options = null)
     {
         $filename = substr($dsn, 7);
         if ($filename === ':memory:') {
@@ -19,12 +19,13 @@ class Sqlite extends Db
 
         $this->filename = Configuration::projectDir() . $filename;
         $this->dsn = 'sqlite:' . $this->filename;
-        parent::__construct($this->dsn, $user, $password);
+        parent::__construct($this->dsn, $user, $password, $options);
     }
 
     public function cleanup()
     {
         $this->dbh = null;
+        gc_collect_cycles();
         file_put_contents($this->filename, '');
         $this->dbh = self::connect($this->dsn, $this->user, $this->password);
     }
@@ -33,7 +34,7 @@ class Sqlite extends Db
     {
         if ($this->hasSnapshot) {
             $this->dbh = null;
-            file_put_contents($this->filename, file_get_contents($this->filename . '_snapshot'));
+            copy($this->filename . '_snapshot', $this->filename);
             $this->dbh = new \PDO($this->dsn, $this->user, $this->password);
         } else {
             if (file_exists($this->filename . '_snapshot')) {

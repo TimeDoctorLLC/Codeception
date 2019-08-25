@@ -41,7 +41,11 @@ class SelfUpdate extends Command
      */
     protected function configure()
     {
-        $this->filename = $_SERVER['argv'][0];
+        if (isset($_SERVER['argv'][0])) {
+            $this->filename = $_SERVER['argv'][0];
+        } else {
+            $this->filename = \Phar::running(false);
+        }
 
         $this
             // ->setAliases(array('selfupdate'))
@@ -165,12 +169,7 @@ class SelfUpdate extends Command
             'https://api.github.com/repos/' . $repo . '/tags'
         );
 
-        return array_map(
-            function ($tag) {
-                return $tag['name'];
-            },
-            json_decode($jsonTags, true)
-        );
+        return array_column(json_decode($jsonTags, true), 'name');
     }
 
     /**
@@ -298,7 +297,7 @@ class SelfUpdate extends Command
     protected function getPharUrl($version)
     {
         $sourceUrl = self::PHAR_URL;
-        if (version_compare(PHP_VERSION, '5.6.0', '<')) {
+        if (version_compare(PHP_VERSION, '7.0.0', '<')) {
             $sourceUrl = self::PHAR_URL_PHP54;
         }
 

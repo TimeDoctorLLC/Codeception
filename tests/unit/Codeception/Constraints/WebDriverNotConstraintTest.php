@@ -1,15 +1,18 @@
 <?php
+
+use Codeception\Util\Locator;
+
 require_once __DIR__.'/mocked_webelement.php';
 
-class WebDriverConstraintNotTest extends PHPUnit_Framework_TestCase
+class WebDriverConstraintNotTest extends \Codeception\PHPUnit\TestCase
 {
 
     /**
-     * @var Codeception\PHPUnit\Constraint\WebDriver
+     * @var Codeception\PHPUnit\Constraint\WebDriverNot
      */
     protected $constraint;
 
-    public function setUp()
+    public function _setUp()
     {
         $this->constraint = new Codeception\PHPUnit\Constraint\WebDriverNot('warcraft', '/user');
     }
@@ -25,10 +28,10 @@ class WebDriverConstraintNotTest extends PHPUnit_Framework_TestCase
         $nodes = array(new TestedWebElement('Bye warcraft'), new TestedWebElement('Bye world'));
         try {
             $this->constraint->evaluate($nodes, 'selector');
-        } catch (PHPUnit_Framework_AssertionFailedError $fail) {
-            $this->assertContains("There was 'selector' element on page /user", $fail->getMessage());
-            $this->assertNotContains('+ <p> Bye world', $fail->getMessage());
-            $this->assertContains('+ <p> Bye warcraft', $fail->getMessage());
+        } catch (\PHPUnit\Framework\AssertionFailedError $fail) {
+            $this->assertStringContainsString("There was 'selector' element on page /user", $fail->getMessage());
+            $this->assertStringNotContainsString('+ <p> Bye world', $fail->getMessage());
+            $this->assertStringContainsString('+ <p> Bye warcraft', $fail->getMessage());
             return;
         }
         $this->fail("should have failed, but not");
@@ -38,10 +41,10 @@ class WebDriverConstraintNotTest extends PHPUnit_Framework_TestCase
     {
         $nodes = array(new TestedWebElement('Bye warcraft'));
         try {
-            $this->constraint->evaluate($nodes, ['css' => 'p.mocked']);
-        } catch (PHPUnit_Framework_AssertionFailedError $fail) {
-            $this->assertContains("There was css 'p.mocked' element on page /user", $fail->getMessage());
-            $this->assertContains('+ <p> Bye warcraft', $fail->getMessage());
+            $this->constraint->evaluate($nodes, Locator::humanReadableString(['css' => 'p.mocked']));
+        } catch (\PHPUnit\Framework\AssertionFailedError $fail) {
+            $this->assertStringContainsString("There was css 'p.mocked' element on page /user", $fail->getMessage());
+            $this->assertStringContainsString('+ <p> Bye warcraft', $fail->getMessage());
             return;
         }
         $this->fail("should have failed, but not");
@@ -55,10 +58,10 @@ class WebDriverConstraintNotTest extends PHPUnit_Framework_TestCase
         }
         try {
             $this->constraint->evaluate($nodes, 'selector');
-        } catch (PHPUnit_Framework_AssertionFailedError $fail) {
-            $this->assertContains("There was 'selector' element on page /user", $fail->getMessage());
-            $this->assertContains('+ <p> warcraft 0', $fail->getMessage());
-            $this->assertContains('+ <p> warcraft 14', $fail->getMessage());
+        } catch (\PHPUnit\Framework\AssertionFailedError $fail) {
+            $this->assertStringContainsString("There was 'selector' element on page /user", $fail->getMessage());
+            $this->assertStringContainsString('+ <p> warcraft 0', $fail->getMessage());
+            $this->assertStringContainsString('+ <p> warcraft 14', $fail->getMessage());
             return;
         }
         $this->fail("should have failed, but not");
@@ -70,9 +73,9 @@ class WebDriverConstraintNotTest extends PHPUnit_Framework_TestCase
         $nodes = array(new TestedWebElement('Bye warcraft'), new TestedWebElement('Bye world'));
         try {
             $this->constraint->evaluate($nodes, 'selector');
-        } catch (PHPUnit_Framework_AssertionFailedError $fail) {
-            $this->assertContains("There was 'selector' element", $fail->getMessage());
-            $this->assertNotContains("There was 'selector' element on page", $fail->getMessage());
+        } catch (\PHPUnit\Framework\AssertionFailedError $fail) {
+            $this->assertStringContainsString("There was 'selector' element", $fail->getMessage());
+            $this->assertStringNotContainsString("There was 'selector' element on page", $fail->getMessage());
             return;
         }
         $this->fail("should have failed, but not");

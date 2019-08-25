@@ -6,7 +6,7 @@ class SqlSrv extends Db
     public function getDb()
     {
         $matches = [];
-        $matched = preg_match('~Database=(.*);~s', $this->dsn, $matches);
+        $matched = preg_match('~Database=(.*);?~s', $this->dsn, $matches);
 
         if (!$matched) {
             return false;
@@ -48,28 +48,9 @@ class SqlSrv extends Db
         );
     }
 
-    protected function generateWhereClause(array &$criteria)
-    {
-        if (empty($criteria)) {
-            return '';
-        }
-
-        $params = [];
-        foreach ($criteria as $k => $v) {
-            if (strpos(strtolower($k), ' like') > 0) {
-                $k = str_replace(' like', '', strtolower($k));
-                $params[] = $this->getQuotedName($k) . " LIKE ? ";
-            } else {
-                $params[] = $this->getQuotedName($k) . " = ? ";
-            }
-        }
-
-        return 'WHERE ' . implode('AND ', $params);
-    }
-
     public function getQuotedName($name)
     {
-        return '[' . $name . ']';
+        return '[' . str_replace('.', '].[', $name) . ']';
     }
 
     /**

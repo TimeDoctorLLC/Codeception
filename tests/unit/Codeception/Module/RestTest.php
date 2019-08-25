@@ -1,7 +1,7 @@
 <?php
 
 use Codeception\Test\Unit;
-use Codeception\Util\Stub as Stub;
+use Codeception\Util\Stub;
 
 /**
  * Class RestTest
@@ -14,7 +14,7 @@ class RestTest extends Unit
      */
     protected $module;
 
-    public function setUp()
+    public function _setUp()
     {
         $connector = new \Codeception\Lib\Connector\Universal();
         $connector->setIndex(\Codeception\Configuration::dataDir() . '/rest/index.php');
@@ -109,7 +109,7 @@ class RestTest extends Unit
 
     public function testInvalidJson()
     {
-        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException');
+        $this->expectException('PHPUnit\Framework\ExpectationFailedException');
         $this->setStubResponse('{xxx = yyy}');
         $this->module->seeResponseIsJson();
     }
@@ -122,9 +122,16 @@ class RestTest extends Unit
         $this->module->seeResponseEquals('<xml><name>John</name></xml>');
     }
 
+    public function testXmlResponseEquals()
+    {
+        $this->setStubResponse('<xml></xml>');
+        $this->module->seeResponseIsXml();
+        $this->module->seeXmlResponseEquals('<xml></xml>');
+    }
+
     public function testInvalidXml()
     {
-        $this->setExpectedException('PHPUnit_Framework_ExpectationFailedException');
+        $this->expectException('PHPUnit\Framework\ExpectationFailedException');
         $this->setStubResponse('<xml><name>John</surname></xml>');
         $this->module->seeResponseIsXml();
     }
@@ -304,7 +311,7 @@ class RestTest extends Unit
         $this->module->seeResponseJsonMatchesXpath('//comment');
     }
 
-    
+
     public function testSeeResponseJsonMatchesJsonPathFails()
     {
         $this->shouldFail();
@@ -315,8 +322,8 @@ class RestTest extends Unit
         $this->module->seeResponseIsJson();
         $this->module->seeResponseJsonMatchesJsonPath('$[*].profile');
     }
-    
-    
+
+
     public function testStructuredJsonPathAndXPath()
     {
         $this->setStubResponse(
@@ -366,7 +373,7 @@ class RestTest extends Unit
         try {
             $this->module->seeResponseMatchesJsonType(['zzz' => 'string']);
             $this->fail('it had to throw exception');
-        } catch (PHPUnit_Framework_AssertionFailedError $e) {
+        } catch (PHPUnit\Framework\AssertionFailedError $e) {
             $this->assertEquals('Key `zzz` doesn\'t exist in {"xxx":"yyy","user_id":1}', $e->getMessage());
         }
     }
@@ -377,7 +384,7 @@ class RestTest extends Unit
         try {
             $this->module->dontSeeResponseMatchesJsonType(['xxx' => 'string']);
             $this->fail('it had to throw exception');
-        } catch (PHPUnit_Framework_AssertionFailedError $e) {
+        } catch (PHPUnit\Framework\AssertionFailedError $e) {
             $this->assertEquals('Unexpectedly response matched: {"xxx":"yyy","user_id":1}', $e->getMessage());
         }
     }
@@ -428,9 +435,73 @@ class RestTest extends Unit
         $this->module->dontSeeBinaryResponseEquals('024f615102cdb3c8c7cf75cdc5a83d15');
     }
 
+    public function testAmDigestAuthenticatedThrowsExceptionWithFunctionalModules()
+    {
+        $this->expectException('\Codeception\Exception\ModuleException');
+        $this->expectExceptionMessage('Not supported by functional modules');
+        $this->module->amDigestAuthenticated('username', 'password');
+    }
+
+    /**
+     * @param $configUrl
+     * @param $requestUrl
+     * @param $expectedFullUrl
+     *
+     * @dataProvider configAndRequestUrls
+     */
+    public function testRestExecute($configUrl, $requestUrl, $expectedFullUrl)
+    {
+        $connectionModule = $this->createMock(
+            \Codeception\Module\UniversalFramework::class
+        );
+        $connectionModule
+            ->expects($this->once())
+            ->method('_request')
+            ->will(
+                $this->returnCallback(function($method,
+                    $uri,
+                    $parameters,
+                    $files,
+                    $server,
+                    $content
+                ) use ($expectedFullUrl) {
+                    \PHPUnit\Framework\Assert::assertEquals($expectedFullUrl, $uri);
+                })
+            );
+
+        $config = ['url' => $configUrl];
+
+        /** @var \Codeception\Module\REST */
+        $module = Stub::make('\Codeception\Module\REST');
+        $module->_setConfig($config);
+        $module->_inject($connectionModule);
+        $module->_initialize();
+        $module->_before(Stub::makeEmpty('\Codeception\Test\Test'));
+
+        $module->sendGET($requestUrl);
+    }
+
+    public static function configAndRequestUrls()
+    {
+        return [
+                //$configUrl, $requestUrl, $expectedFullUrl
+                ['v1/', 'healthCheck', 'v1/healthCheck'],
+                ['/v1', '/healthCheck', '/v1/healthCheck'],
+                ['v1', 'healthCheck', 'v1/healthCheck'],
+                ['http://v1/', '/healthCheck', 'http://v1/healthCheck'],
+                ['http://v1', 'healthCheck', 'http://v1/healthCheck'],
+                ['http://v1', 'http://v2/healthCheck', 'http://v2/healthCheck'],
+                ['http://v1', '', 'http://v1'],
+                ['http://v1', '/', 'http://v1/'],
+                ['', 'http://v1', 'http://v1'],
+                ['', 'healthCheck', 'healthCheck'],
+                ['/', 'healthCheck', '/healthCheck'],
+            ];
+    }
+
     protected function shouldFail()
     {
-        $this->setExpectedException('PHPUnit_Framework_AssertionFailedError');
+        $this->expectException('PHPUnit\Framework\AssertionFailedError');
     }
 }
 

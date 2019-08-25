@@ -18,8 +18,6 @@ namespace {{namespace}}_generated;
 // You should not change it manually as it will be overwritten on next build
 // @codingStandardsIgnoreFile
 
-{{use}}
-
 trait {{name}}Actions
 {
     /**
@@ -31,7 +29,6 @@ trait {{name}}Actions
 }
 
 EOF;
-
 
     protected $methodTemplate = <<<EOF
 
@@ -52,28 +49,31 @@ EOF;
     protected $actions;
     protected $numMethods = 0;
 
+    /**
+     * @var array GeneratedStep[]
+     */
+    protected $generatedSteps = [];
+
     public function __construct($settings)
     {
-        $this->name = $settings['class_name'];
+        $this->name = $settings['actor'];
         $this->settings = $settings;
         $this->di = new Di();
         $modules = Configuration::modules($this->settings);
         $this->moduleContainer = new ModuleContainer($this->di, $settings);
         foreach ($modules as $moduleName) {
-            $this->modules[$moduleName] = $this->moduleContainer->create($moduleName);
+            $this->moduleContainer->create($moduleName);
         }
+        $this->modules = $this->moduleContainer->all();
         $this->actions = $this->moduleContainer->getActions();
+
+        $this->generatedSteps = (array) $settings['step_decorators'];
     }
 
 
     public function produce()
     {
         $namespace = rtrim($this->settings['namespace'], '\\');
-
-        $uses = [];
-        foreach ($this->modules as $module) {
-            $uses[] = "use " . get_class($module) . ";";
-        }
 
         $methods = [];
         $code = [];
@@ -92,7 +92,6 @@ EOF;
             ->place('namespace', $namespace ? $namespace . '\\' : '')
             ->place('hash', self::genHash($this->modules, $this->settings))
             ->place('name', $this->name)
-            ->place('use', implode("\n", $uses))
             ->place('methods', implode("\n\n ", $code))
             ->produce();
     }
@@ -111,30 +110,13 @@ EOF;
             $doc = "*";
         }
 
-        $conditionalDoc = $doc . "\n     * Conditional Assertion: Test won't be stopped on fail";
-
         $methodTemplate = (new Template($this->methodTemplate))
             ->place('module', $module)
             ->place('method', $refMethod->name)
             ->place('params', $params);
 
-        // generate conditional assertions
         if (0 === strpos($refMethod->name, 'see')) {
             $type = 'Assertion';
-            $body .= $methodTemplate
-                ->place('doc', $conditionalDoc)
-                ->place('action', 'can' . ucfirst($refMethod->name))
-                ->place('step', 'ConditionalAssertion')
-                ->produce();
-
-            // generate negative assertion
-        } elseif (0 === strpos($refMethod->name, 'dontSee')) {
-            $type = 'Assertion';
-            $body .= $methodTemplate
-                ->place('doc', $conditionalDoc)
-                ->place('action', str_replace('dont', 'cant', $refMethod->name))
-                ->place('step', 'ConditionalAssertion')
-                ->produce();
         } elseif (0 === strpos($refMethod->name, 'am')) {
             $type = 'Condition';
         } else {
@@ -146,6 +128,17 @@ EOF;
             ->place('action', $refMethod->name)
             ->place('step', $type)
             ->produce();
+
+        // add auto generated steps
+        foreach (array_unique($this->generatedSteps) as $generator) {
+            if (!is_callable([$generator, 'getTemplate'])) {
+                throw new \Exception("Wrong configuration for generated steps. $generator doesn't implement \Codeception\Step\GeneratedStep interface");
+            }
+            $template = call_user_func([$generator, 'getTemplate'], clone $methodTemplate);
+            if ($template) {
+                $body .= $template->produce();
+            }
+        }
 
         return $body;
     }
@@ -205,7 +198,7 @@ EOF;
             $actions[$moduleName] = get_class_methods(get_class($module));
         }
 
-        return md5(Codecept::VERSION . serialize($actions) . serialize($settings['modules']));
+        return md5(Codecept::VERSION . serialize($actions) . serialize($settings['modules']) . implode(',', (array) $settings['step_decorators']));
     }
 
     public function getNumMethods()

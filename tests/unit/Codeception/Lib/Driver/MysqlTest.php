@@ -5,6 +5,7 @@ use \Codeception\Test\Unit;
 
 /**
  * @group appveyor
+ * @group db
  */
 class MysqlTest extends Unit
 {
@@ -20,7 +21,7 @@ class MysqlTest extends Unit
      */
     protected $mysql;
     
-    public static function setUpBeforeClass()
+    public static function _setUpBeforeClass()
     {
         if (getenv('APPVEYOR')) {
             self::$config['password'] = 'Password12!';
@@ -35,17 +36,18 @@ class MysqlTest extends Unit
         }
     }
 
-    public function setUp()
+    public function _setUp()
     {
         try {
             $this->mysql = Db::create(self::$config['dsn'], self::$config['user'], self::$config['password']);
         } catch (\Exception $e) {
-            $this->markTestSkipped('Couldn\'t establish connection to database');
+            $this->markTestSkipped('Couldn\'t establish connection to database: ' . $e->getMessage());
         }
+        $this->mysql->cleanup();
         $this->mysql->load(self::$sql);
     }
     
-    public function tearDown()
+    public function _tearDown()
     {
         if (isset($this->mysql)) {
             $this->mysql->cleanup();
@@ -88,34 +90,6 @@ class MysqlTest extends Unit
         $this->assertEquals([], $this->mysql->getPrimaryKey('no_pk'));
     }
 
-    public function testGetPrimaryColumnOfTableUsingReservedWordAsTableName()
-    {
-        $this->assertEquals('id', $this->mysql->getPrimaryColumn('order'));
-    }
-
-    public function testGetPrimaryColumnThrowsExceptionIfTableHasCompositePrimaryKey()
-    {
-        $this->setExpectedException(
-            '\Exception',
-            'getPrimaryColumn method does not support composite primary keys, use getPrimaryKey instead'
-        );
-        $this->mysql->getPrimaryColumn('composite_pk');
-    }
-
-    public function testDeleteFromTableUsingReservedWordAsTableName()
-    {
-        $this->mysql->deleteQuery('order', 1);
-        $res = $this->mysql->getDbh()->query("select id from `order` where id = 1");
-        $this->assertEquals(0, $res->rowCount());
-    }
-
-    public function testDeleteFromTableUsingReservedWordAsPrimaryKey()
-    {
-        $this->mysql->deleteQuery('table_with_reserved_primary_key', 1, 'unique');
-        $res = $this->mysql->getDbh()->query("select name from `table_with_reserved_primary_key` where `unique` = 1");
-        $this->assertEquals(0, $res->rowCount());
-    }
-
     public function testSelectWithBooleanParam()
     {
         $res = $this->mysql->executeQuery("select `id` from `users` where `is_active` = ?", [false]);
@@ -124,9 +98,6 @@ class MysqlTest extends Unit
 
     public function testInsertIntoBitField()
     {
-        if (getenv('WERCKER_ROOT')) {
-            $this->markTestSkipped('Disabled on Wercker CI');
-        }
         $res = $this->mysql->executeQuery(
             "insert into `users`(`id`,`name`,`email`,`is_active`,`created_at`) values (?,?,?,?,?)",
             [5,'insert.test','insert.test@mail.ua',false,'2012-02-01 21:17:47']
@@ -134,13 +105,17 @@ class MysqlTest extends Unit
         $this->assertEquals(1, $res->rowCount());
     }
 
+    /**
+     * THis will fail if MariaDb is used
+     */
     public function testLoadThrowsExceptionWhenDumpFileContainsSyntaxError()
     {
         $sql = "INSERT INTO `users` (`name`) VALS('')";
         $expectedMessage = 'You have an error in your SQL syntax; ' .
             'check the manual that corresponds to your MySQL server version for the right syntax to use near ' .
             "'VALS('')' at line 1\nSQL query being executed: \n" . $sql;
-        $this->setExpectedException('Codeception\Exception\ModuleException', $expectedMessage);
+        $this->expectException('Codeception\Exception\ModuleException');
+        $this->expectExceptionMessage( $expectedMessage);
         $this->mysql->load([$sql]);
     }
 }

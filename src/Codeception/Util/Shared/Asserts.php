@@ -16,7 +16,7 @@ trait Asserts
             $not = '';
         }
 
-        call_user_func_array(['\PHPUnit_Framework_Assert', 'assert' . $not . $method], $arguments);
+        call_user_func_array(['\PHPUnit\Framework\Assert', 'assert' . $not . $method], $arguments);
     }
 
     protected function assertNot($arguments)
@@ -34,7 +34,7 @@ trait Asserts
      */
     protected function assertEquals($expected, $actual, $message = '', $delta = 0.0)
     {
-        \PHPUnit_Framework_Assert::assertEquals($expected, $actual, $message, $delta);
+        \PHPUnit\Framework\Assert::assertEquals($expected, $actual, $message, $delta);
     }
 
     /**
@@ -47,7 +47,7 @@ trait Asserts
      */
     protected function assertNotEquals($expected, $actual, $message = '', $delta = 0.0)
     {
-        \PHPUnit_Framework_Assert::assertNotEquals($expected, $actual, $message, $delta);
+        \PHPUnit\Framework\Assert::assertNotEquals($expected, $actual, $message, $delta);
     }
 
     /**
@@ -59,7 +59,7 @@ trait Asserts
      */
     protected function assertSame($expected, $actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertSame($expected, $actual, $message);
+        \PHPUnit\Framework\Assert::assertSame($expected, $actual, $message);
     }
 
     /**
@@ -71,7 +71,7 @@ trait Asserts
      */
     protected function assertNotSame($expected, $actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertNotSame($expected, $actual, $message);
+        \PHPUnit\Framework\Assert::assertNotSame($expected, $actual, $message);
     }
 
     /**
@@ -83,15 +83,7 @@ trait Asserts
      */
     protected function assertGreaterThan($expected, $actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertGreaterThan($expected, $actual, $message);
-    }
-
-    /**
-     * @deprecated
-     */
-    protected function assertGreaterThen($expected, $actual, $message = '')
-    {
-        \PHPUnit_Framework_Assert::assertGreaterThan($expected, $actual, $message);
+        \PHPUnit\Framework\Assert::assertGreaterThan($expected, $actual, $message);
     }
 
     /**
@@ -103,15 +95,7 @@ trait Asserts
      */
     protected function assertGreaterThanOrEqual($expected, $actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertGreaterThanOrEqual($expected, $actual, $message);
-    }
-
-    /**
-     * @deprecated
-     */
-    protected function assertGreaterThenOrEqual($expected, $actual, $message = '')
-    {
-        \PHPUnit_Framework_Assert::assertGreaterThanOrEqual($expected, $actual, $message);
+        \PHPUnit\Framework\Assert::assertGreaterThanOrEqual($expected, $actual, $message);
     }
 
     /**
@@ -123,7 +107,7 @@ trait Asserts
      */
     protected function assertLessThan($expected, $actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertLessThan($expected, $actual, $message);
+        \PHPUnit\Framework\Assert::assertLessThan($expected, $actual, $message);
     }
 
     /**
@@ -135,7 +119,7 @@ trait Asserts
      */
     protected function assertLessThanOrEqual($expected, $actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertLessThanOrEqual($expected, $actual, $message);
+        \PHPUnit\Framework\Assert::assertLessThanOrEqual($expected, $actual, $message);
     }
 
 
@@ -148,7 +132,7 @@ trait Asserts
      */
     protected function assertContains($needle, $haystack, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertContains($needle, $haystack, $message);
+        \PHPUnit\Framework\Assert::assertContains($needle, $haystack, $message);
     }
 
     /**
@@ -160,7 +144,7 @@ trait Asserts
      */
     protected function assertNotContains($needle, $haystack, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertNotContains($needle, $haystack, $message);
+        \PHPUnit\Framework\Assert::assertNotContains($needle, $haystack, $message);
     }
 
     /**
@@ -172,7 +156,7 @@ trait Asserts
      */
     protected function assertRegExp($pattern, $string, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertRegExp($pattern, $string, $message);
+        \PHPUnit\Framework\Assert::assertRegExp($pattern, $string, $message);
     }
     
     /**
@@ -184,10 +168,34 @@ trait Asserts
      */
     protected function assertNotRegExp($pattern, $string, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertNotRegExp($pattern, $string, $message);
+        \PHPUnit\Framework\Assert::assertNotRegExp($pattern, $string, $message);
     }
-        
-    
+
+    /**
+     * Checks that a string starts with the given prefix.
+     *
+     * @param string $prefix
+     * @param string $string
+     * @param string $message
+     */
+    protected function assertStringStartsWith($prefix, $string, $message = '')
+    {
+        \PHPUnit\Framework\Assert::assertStringStartsWith($prefix, $string, $message);
+    }
+
+    /**
+     * Checks that a string doesn't start with the given prefix.
+     *
+     * @param string $prefix
+     * @param string $string
+     * @param string $message
+     */
+    protected function assertStringStartsNotWith($prefix, $string, $message = '')
+    {
+        \PHPUnit\Framework\Assert::assertStringStartsNotWith($prefix, $string, $message);
+    }
+
+
     /**
      * Checks that variable is empty.
      *
@@ -196,7 +204,7 @@ trait Asserts
      */
     protected function assertEmpty($actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertEmpty($actual, $message);
+        \PHPUnit\Framework\Assert::assertEmpty($actual, $message);
     }
 
     /**
@@ -207,7 +215,7 @@ trait Asserts
      */
     protected function assertNotEmpty($actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertNotEmpty($actual, $message);
+        \PHPUnit\Framework\Assert::assertNotEmpty($actual, $message);
     }
 
     /**
@@ -218,7 +226,7 @@ trait Asserts
      */
     protected function assertNull($actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertNull($actual, $message);
+        \PHPUnit\Framework\Assert::assertNull($actual, $message);
     }
 
     /**
@@ -229,7 +237,7 @@ trait Asserts
      */
     protected function assertNotNull($actual, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertNotNull($actual, $message);
+        \PHPUnit\Framework\Assert::assertNotNull($actual, $message);
     }
 
     /**
@@ -240,7 +248,18 @@ trait Asserts
      */
     protected function assertTrue($condition, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertTrue($condition, $message);
+        \PHPUnit\Framework\Assert::assertTrue($condition, $message);
+    }
+
+    /**
+     * Checks that the condition is NOT true (everything but true)
+     *
+     * @param        $condition
+     * @param string $message
+     */
+    protected function assertNotTrue($condition, $message = '')
+    {
+        \PHPUnit\Framework\Assert::assertNotTrue($condition, $message);
     }
 
     /**
@@ -251,7 +270,18 @@ trait Asserts
      */
     protected function assertFalse($condition, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertFalse($condition, $message);
+        \PHPUnit\Framework\Assert::assertFalse($condition, $message);
+    }
+
+    /**
+     * Checks that the condition is NOT false (everything but false)
+     *
+     * @param        $condition
+     * @param string $message
+     */
+    protected function assertNotFalse($condition, $message = '')
+    {
+        \PHPUnit\Framework\Assert::assertNotFalse($condition, $message);
     }
 
     /**
@@ -262,7 +292,7 @@ trait Asserts
      */
     protected function assertThat($haystack, $constraint, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertThat($haystack, $constraint, $message);
+        \PHPUnit\Framework\Assert::assertThat($haystack, $constraint, $message);
     }
 
     /**
@@ -274,8 +304,8 @@ trait Asserts
      */
     protected function assertThatItsNot($haystack, $constraint, $message = '')
     {
-        $constraint = new \PHPUnit_Framework_Constraint_Not($constraint);
-        \PHPUnit_Framework_Assert::assertThat($haystack, $constraint, $message);
+        $constraint = new \PHPUnit\Framework\Constraint\LogicalNot($constraint);
+        \PHPUnit\Framework\Assert::assertThat($haystack, $constraint, $message);
     }
 
     
@@ -287,7 +317,7 @@ trait Asserts
      */
     protected function assertFileExists($filename, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertFileExists($filename, $message);
+        \PHPUnit\Framework\Assert::assertFileExists($filename, $message);
     }
     
         
@@ -299,7 +329,7 @@ trait Asserts
      */
     protected function assertFileNotExists($filename, $message = '')
     {
-        \PHPUnit_Framework_Assert::assertFileNotExists($filename, $message);
+        \PHPUnit\Framework\Assert::assertFileNotExists($filename, $message);
     }
 
     /**
@@ -309,7 +339,7 @@ trait Asserts
      */
     protected function assertGreaterOrEquals($expected, $actual, $description = '')
     {
-        \PHPUnit_Framework_Assert::assertGreaterThanOrEqual($expected, $actual, $description);
+        \PHPUnit\Framework\Assert::assertGreaterThanOrEqual($expected, $actual, $description);
     }
 
     /**
@@ -319,7 +349,7 @@ trait Asserts
      */
     protected function assertLessOrEquals($expected, $actual, $description = '')
     {
-        \PHPUnit_Framework_Assert::assertLessThanOrEqual($expected, $actual, $description);
+        \PHPUnit\Framework\Assert::assertLessThanOrEqual($expected, $actual, $description);
     }
 
     /**
@@ -328,7 +358,7 @@ trait Asserts
      */
     protected function assertIsEmpty($actual, $description = '')
     {
-        \PHPUnit_Framework_Assert::assertEmpty($actual, $description);
+        \PHPUnit\Framework\Assert::assertEmpty($actual, $description);
     }
 
     /**
@@ -338,7 +368,7 @@ trait Asserts
      */
     protected function assertArrayHasKey($key, $actual, $description = '')
     {
-        \PHPUnit_Framework_Assert::assertArrayHasKey($key, $actual, $description);
+        \PHPUnit\Framework\Assert::assertArrayHasKey($key, $actual, $description);
     }
 
     /**
@@ -348,7 +378,20 @@ trait Asserts
      */
     protected function assertArrayNotHasKey($key, $actual, $description = '')
     {
-        \PHPUnit_Framework_Assert::assertArrayNotHasKey($key, $actual, $description);
+        \PHPUnit\Framework\Assert::assertArrayNotHasKey($key, $actual, $description);
+    }
+
+    /**
+     * Checks that array contains subset.
+     *
+     * @param array  $subset
+     * @param array  $array
+     * @param bool   $strict
+     * @param string $message
+     */
+    protected function assertArraySubset($subset, $array, $strict = false, $message = '')
+    {
+        \PHPUnit\Framework\Assert::assertArraySubset($subset, $array, $strict, $message);
     }
 
     /**
@@ -358,7 +401,7 @@ trait Asserts
      */
     protected function assertCount($expectedCount, $actual, $description = '')
     {
-        \PHPUnit_Framework_Assert::assertCount($expectedCount, $actual, $description);
+        \PHPUnit\Framework\Assert::assertCount($expectedCount, $actual, $description);
     }
 
     /**
@@ -368,7 +411,7 @@ trait Asserts
      */
     protected function assertInstanceOf($class, $actual, $description = '')
     {
-        \PHPUnit_Framework_Assert::assertInstanceOf($class, $actual, $description);
+        \PHPUnit\Framework\Assert::assertInstanceOf($class, $actual, $description);
     }
 
     /**
@@ -378,7 +421,7 @@ trait Asserts
      */
     protected function assertNotInstanceOf($class, $actual, $description = '')
     {
-        \PHPUnit_Framework_Assert::assertNotInstanceOf($class, $actual, $description);
+        \PHPUnit\Framework\Assert::assertNotInstanceOf($class, $actual, $description);
     }
 
     /**
@@ -388,7 +431,7 @@ trait Asserts
      */
     protected function assertInternalType($type, $actual, $description = '')
     {
-        \PHPUnit_Framework_Assert::assertInternalType($type, $actual, $description);
+        \PHPUnit\Framework\Assert::assertInternalType($type, $actual, $description);
     }
     
     /**
@@ -398,6 +441,156 @@ trait Asserts
      */
     protected function fail($message)
     {
-        \PHPUnit_Framework_Assert::fail($message);
+        \PHPUnit\Framework\Assert::fail($message);
+    }
+
+    protected function assertStringContainsString($needle, $haystack, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertStringContainsString($needle, $haystack, $message);
+    }
+
+    protected function assertStringNotContainsString($needle, $haystack, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertStringNotContainsString($needle, $haystack, $message);
+    }
+
+    protected function assertStringContainsStringIgnoringCase($needle, $haystack, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertStringContainsStringIgnoringCase($needle, $haystack, $message);
+    }
+
+    protected function assertStringNotContainsStringIgnoringCase($needle, $haystack, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertStringNotContainsStringIgnoringCase($needle, $haystack, $message);
+    }
+
+    protected function assertIsArray($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsArray($actual, $message);
+    }
+
+    protected function assertIsBool($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsBool($actual, $message);
+    }
+
+    protected function assertIsFloat($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsFloat($actual, $message);
+    }
+
+    protected function assertIsInt($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsInt($actual, $message);
+    }
+
+    protected function assertIsNumeric($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNumeric($actual, $message);
+    }
+
+    protected function assertIsObject($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsObject($actual, $message);
+    }
+
+    protected function assertIsResource($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsResource($actual, $message);
+    }
+
+    protected function assertIsString($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsString($actual, $message);
+    }
+
+    protected function assertIsScalar($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsScalar($actual, $message);
+    }
+
+    protected function assertIsCallable($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsCallable($actual, $message);
+    }
+
+    protected function assertIsNotArray($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotArray($actual, $message);
+    }
+
+    protected function assertIsNotBool($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotBool($actual, $message);
+    }
+
+    protected function assertIsNotFloat($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotFloat($actual, $message);
+    }
+
+    protected function assertIsNotInt($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotInt($actual, $message);
+    }
+
+    protected function assertIsNotNumeric($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotNumeric($actual, $message);
+    }
+
+    protected function assertIsNotObject($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotObject($actual, $message);
+    }
+
+    protected function assertIsNotResource($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotResource($actual, $message);
+    }
+
+    protected function assertIsNotString($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotString($actual, $message);
+    }
+
+    protected function assertIsNotScalar($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotScalar($actual, $message);
+    }
+
+    protected function assertIsNotCallable($actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertIsNotCallable($actual, $message);
+    }
+
+    protected function assertEqualsCanonicalizing($expected, $actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertEqualsCanonicalizing($expected, $actual, $message);
+    }
+
+    protected function assertNotEqualsCanonicalizing($expected, $actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertNotEqualsCanonicalizing($expected, $actual, $message);
+    }
+
+    protected function assertEqualsIgnoringCase($expected, $actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertEqualsIgnoringCase($expected, $actual, $message);
+    }
+
+    protected function assertNotEqualsIgnoringCase($expected, $actual, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertNotEqualsIgnoringCase($expected, $actual, $message);
+    }
+
+    protected function assertEqualsWithDelta($expected, $actual, $delta, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertEqualsWithDelta($expected, $actual, $delta, $message);
+    }
+
+    protected function assertNotEqualsWithDelta($expected, $actual, $delta, $message = '')
+    {
+        \Codeception\PHPUnit\TestCase::assertNotEqualsWithDelta($expected, $actual, $delta, $message);
     }
 }

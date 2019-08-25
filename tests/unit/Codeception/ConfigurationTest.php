@@ -1,15 +1,15 @@
 <?php
 
 
-class ConfigurationTest extends \PHPUnit_Framework_TestCase
+class ConfigurationTest extends \Codeception\PHPUnit\TestCase
 {
 
-    public function setUp()
+    public function _setUp()
     {
         $this->config = \Codeception\Configuration::config();
     }
 
-    protected function tearDown()
+    protected function _tearDown()
     {
         \Codeception\Module\UniversalFramework::$includeInheritedActions = true;
         \Codeception\Module\UniversalFramework::$onlyActions = [];
@@ -65,5 +65,8 @@ class ConfigurationTest extends \PHPUnit_Framework_TestCase
 
         $commandsConfig = $defaultConfig['extensions'];
         $this->assertArrayHasKey('commands', $commandsConfig);
+
+        $this->assertArrayHasKey('extends', $defaultConfig);
+        $this->assertNull($defaultConfig['extends']);
     }
 }

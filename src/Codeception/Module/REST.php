@@ -1,6 +1,9 @@
 <?php
+
 namespace Codeception\Module;
 
+use Codeception\Exception\ConfigurationException;
+use Codeception\Exception\ModuleConfigException;
 use Codeception\Exception\ModuleException;
 use Codeception\Lib\Interfaces\ConflictsWithModule;
 use Codeception\Module as CodeceptionModule;
@@ -27,6 +30,7 @@ use Codeception\Util\Soap as XmlUtils;
  * ## Configuration
  *
  * * url *optional* - the url of api
+ * * shortDebugResponse *optional* - amount of chars to limit the api response length
  *
  * This module requires PHPBrowser or any of Framework modules enabled.
  *
@@ -37,6 +41,7 @@ use Codeception\Util\Soap as XmlUtils;
  *            - REST:
  *                depends: PhpBrowser
  *                url: 'http://serviceapp/api/v1/'
+ *                shortDebugResponse: 300 # only the first 300 chars of the response
  *
  * ## Public Properties
  *
@@ -57,7 +62,8 @@ use Codeception\Util\Soap as XmlUtils;
 class REST extends CodeceptionModule implements DependsOnModule, PartedModule, API, ConflictsWithModule
 {
     protected $config = [
-        'url' => ''
+        'url' => '',
+        'aws' => ''
     ];
 
     protected $dependencyMessage = <<<EOF
@@ -68,9 +74,12 @@ modules:
         - REST:
             depends: PhpBrowser
             url: http://localhost/api/
+            shortDebugResponse: 300
 --
 Framework modules can be used for testing of API as well.
 EOF;
+
+    protected $DEFAULT_SHORTEN_VALUE = 150;
 
     /**
      * @var \Symfony\Component\HttpKernel\Client|\Symfony\Component\BrowserKit\Client
@@ -126,6 +135,19 @@ EOF;
             }
         }
     }
+
+    public function _failed(TestInterface $test, $fail)
+    {
+        if (!$this->response) {
+            return;
+        }
+        $printedResponse = $this->response;
+        if ($this->isBinaryData($printedResponse)) {
+            $printedResponse = $this->binaryToDebugString($printedResponse);
+        }
+        $test->getMetadata()->addReport('body', $printedResponse);
+    }
+
 
     protected function getRunningClient()
     {
@@ -239,7 +261,7 @@ EOF;
     public function seeHttpHeaderOnce($name)
     {
         $headers = $this->getRunningClient()->getInternalResponse()->getHeader($name, false);
-        $this->assertEquals(1, count($headers));
+        $this->assertCount(1, $headers);
     }
 
     /**
@@ -285,6 +307,9 @@ EOF;
      */
     public function amDigestAuthenticated($username, $password)
     {
+        if ($this->isFunctional) {
+            throw new ModuleException(__METHOD__, 'Not supported by functional modules');
+        }
         $this->client->setAuth($username, $password, 'digest');
     }
 
@@ -298,6 +323,84 @@ EOF;
     public function amBearerAuthenticated($accessToken)
     {
         $this->haveHttpHeader('Authorization', 'Bearer ' . $accessToken);
+    }
+
+    /**
+     * Adds NTLM authentication via username/password.
+     * Requires client to be Guzzle >=6.3.0
+     * Out of scope for functional modules.
+     *
+     * Example:
+     * ```php
+     * <?php
+     * $I->amNTLMAuthenticated('jon_snow', 'targaryen');
+     * ?>
+     * ```
+     *
+     * @param $username
+     * @param $password
+     * @throws ModuleException
+     * @part json
+     * @part xml
+     */
+    public function amNTLMAuthenticated($username, $password)
+    {
+        if ($this->isFunctional) {
+            throw new ModuleException(__METHOD__, 'Not supported by functional modules');
+        }
+        if (!defined('\GuzzleHttp\Client::VERSION')) {
+            throw new ModuleException(__METHOD__, 'Not supported if not using a Guzzle client');
+        }
+        if (version_compare(\GuzzleHttp\Client::VERSION, '6.2.1', 'lt')) {
+            throw new ModuleException(__METHOD__, 'Guzzle ' . \GuzzleHttp\Client::VERSION . ' found. Requires Guzzle >=6.3.0 for NTLM auth option');
+        }
+        $this->client->setAuth($username, $password, 'ntlm');
+    }
+
+    /**
+     * Allows to send REST request using AWS Authorization
+     *
+     * Only works with PhpBrowser
+     * Example Config:
+     * ```yml
+     * modules:
+     *      enabled:
+     *          - REST:
+     *              aws:
+     *                  key: accessKey
+     *                  secret: accessSecret
+     *                  service: awsService
+     *                  region: awsRegion
+     * ```
+     * Code:
+     * ```php
+     * <?php
+     * $I->amAWSAuthenticated();
+     * ?>
+     * ```
+     * @param array $additionalAWSConfig
+     * @throws ModuleException
+     */
+    public function amAWSAuthenticated($additionalAWSConfig = [])
+    {
+        if (method_exists($this->client, 'setAwsAuth')) {
+            $config = array_merge($this->config['aws'], $additionalAWSConfig);
+
+            if (!isset($config['key'])) {
+                throw new ConfigurationException('AWS Key is not set');
+            }
+            if (!isset($config['secret'])) {
+                throw new ConfigurationException('AWS Secret is not set');
+            }
+            if (!isset($config['service'])) {
+                throw new ConfigurationException('AWS Service is not set');
+            }
+            if (!isset($config['region'])) {
+                throw new ConfigurationException('AWS Region is not set');
+            }
+
+            $this->client->setAwsAuth($config);
+        }
     }
 
     /**
@@ -432,12 +535,12 @@ EOF;
     {
         $values = [];
         foreach ($linkEntries as $linkEntry) {
-            \PHPUnit_Framework_Assert::assertArrayHasKey(
+            \PHPUnit\Framework\Assert::assertArrayHasKey(
                 'uri',
                 $linkEntry,
                 'linkEntry should contain property "uri"'
             );
-            \PHPUnit_Framework_Assert::assertArrayHasKey(
+            \PHPUnit\Framework\Assert::assertArrayHasKey(
                 'link-param',
                 $linkEntry,
                 'linkEntry should contain property "link-param"'
@@ -485,8 +588,10 @@ EOF;
     protected function execute($method, $url, $parameters = [], $files = [])
     {
         // allow full url to be requested
-        if (strpos($url, '://') === false) {
-            $url = $this->config['url'] . $url;
+        if (!$url) {
+            $url = $this->config['url'];
+        } elseif (strpos($url, '://') === false && $this->config['url']) {
+            $url = rtrim($this->config['url'], '/') . '/' . ltrim($url, '/');
         }
 
         $this->params = $parameters;
@@ -522,7 +627,15 @@ EOF;
         if ($this->isBinaryData($printedResponse)) {
             $printedResponse = $this->binaryToDebugString($printedResponse);
         }
-        $this->debugSection("Response", $printedResponse);
+
+        $short = $this->_getConfig('shortDebugResponse');
+
+        if (!is_null($short)) {
+            $printedResponse = $this->shortenMessage($printedResponse, $short);
+            $this->debugSection("Shortened Response", $printedResponse);
+        } else {
+            $this->debugSection("Response", $printedResponse);
+        }
     }
 
     /**
@@ -583,13 +696,13 @@ EOF;
                 if (isset($value['tmp_name'])) {
                     $this->checkFileBeforeUpload($value['tmp_name']);
                     if (!isset($value['name'])) {
-                        $value['name'] = basename($value);
+                        $value['name'] = basename($value['tmp_name']);
                     }
                     if (!isset($value['size'])) {
-                        $value['size'] = filesize($value);
+                        $value['size'] = filesize($value['tmp_name']);
                     }
                     if (!isset($value['type'])) {
-                        $value['type'] = $this->getFileType($value);
+                        $value['type'] = $this->getFileType($value['tmp_name']);
                     }
                     if (!isset($value['error'])) {
                         $value['error'] = 0;
@@ -632,6 +745,23 @@ EOF;
     }
 
     /**
+     * Extends the function Module::validateConfig for shorten messages
+     *
+     */
+    protected function validateConfig()
+    {
+        parent::validateConfig();
+
+        $short = $this->_getConfig('shortDebugResponse');
+
+        if (!is_null($short)) {
+            if (!is_int($short) || $short < 0) {
+                throw new ModuleConfigException(__CLASS__, 'The value of "shortDebugMessage" should be integer and greater or equal "0".');
+            }
+        }
+    }
+
+    /**
      * Checks whether last response was valid JSON.
      * This is done with json_last_error function.
      *
@@ -640,11 +770,11 @@ EOF;
     public function seeResponseIsJson()
     {
         $responseContent = $this->connectionModule->_getResponseContent();
-        \PHPUnit_Framework_Assert::assertNotEquals('', $responseContent, 'response is empty');
+        \PHPUnit\Framework\Assert::assertNotEquals('', $responseContent, 'response is empty');
         json_decode($responseContent);
         $errorCode = json_last_error();
         $errorMessage = json_last_error_msg();
-        \PHPUnit_Framework_Assert::assertEquals(
+        \PHPUnit\Framework\Assert::assertEquals(
             JSON_ERROR_NONE,
             $errorCode,
             sprintf(
@@ -664,7 +794,7 @@ EOF;
      */
     public function seeResponseContains($text)
     {
-        $this->assertContains($text, $this->connectionModule->_getResponseContent(), "REST response contains");
+        $this->assertStringContainsString($text, $this->connectionModule->_getResponseContent(), "REST response contains");
     }
 
     /**
@@ -676,7 +806,7 @@ EOF;
      */
     public function dontSeeResponseContains($text)
     {
-        $this->assertNotContains($text, $this->connectionModule->_getResponseContent(), "REST response contains");
+        $this->assertStringNotContainsString($text, $this->connectionModule->_getResponseContent(), "REST response contains");
     }
 
     /**
@@ -705,7 +835,7 @@ EOF;
      */
     public function seeResponseContainsJson($json = [])
     {
-        \PHPUnit_Framework_Assert::assertThat(
+        \PHPUnit\Framework\Assert::assertThat(
             $this->connectionModule->_getResponseContent(),
             new JsonContains($json)
         );
@@ -723,10 +853,10 @@ EOF;
      * ?>
      * ```
      *
-     * @version 1.1
      * @return string
      * @part json
      * @part xml
+     * @version 1.1
      */
     public function grabResponse()
     {
@@ -753,9 +883,9 @@ EOF;
      *
      * @param string $jsonPath
      * @return array Array of matching items
-     * @version 2.0.9
      * @throws \Exception
      * @part json
+     * @version 2.0.9
      */
     public function grabDataFromResponseByJsonPath($jsonPath)
     {
@@ -959,7 +1089,7 @@ EOF;
      * ?>
      * ```
      *
-     * You can also apply filters to check values. Filter can be applied with `:` char after the type declatation.
+     * You can also apply filters to check values. Filter can be applied with `:` char after the type declaration.
      *
      * Here is the list of possible filters:
      *
@@ -991,9 +1121,9 @@ EOF;
      * See [JsonType reference](http://codeception.com/docs/reference/JsonType).
      *
      * @part json
-     * @version 2.1.3
      * @param array $jsonType
      * @param string $jsonPath
+     * @version 2.1.3
      */
     public function seeResponseMatchesJsonType(array $jsonType, $jsonPath = null)
     {
@@ -1002,16 +1132,16 @@ EOF;
             $jsonArray = $jsonArray->filterByJsonPath($jsonPath);
         }
 
-        \PHPUnit_Framework_Assert::assertThat($jsonArray, new JsonTypeConstraint($jsonType));
+        \PHPUnit\Framework\Assert::assertThat($jsonArray, new JsonTypeConstraint($jsonType));
     }
 
     /**
      * Opposite to `seeResponseMatchesJsonType`.
      *
      * @part json
-     * @see seeResponseMatchesJsonType
      * @param $jsonType jsonType structure
      * @param null $jsonPath optionally set specific path to structure with JsonPath
+     * @see seeResponseMatchesJsonType
      * @version 2.1.3
      */
     public function dontSeeResponseMatchesJsonType($jsonType, $jsonPath = null)
@@ -1021,7 +1151,7 @@ EOF;
             $jsonArray = $jsonArray->filterByJsonPath($jsonPath);
         }
 
-        \PHPUnit_Framework_Assert::assertThat($jsonArray, new JsonTypeConstraint($jsonType, false));
+        \PHPUnit\Framework\Assert::assertThat($jsonArray, new JsonTypeConstraint($jsonType, false));
     }
 
     /**
@@ -1077,6 +1207,51 @@ EOF;
     }
 
     /**
+     * Checks that the response code is 2xx
+     *
+     * @part json
+     * @part xml
+     */
+    public function seeResponseCodeIsSuccessful()
+    {
+        $this->connectionModule->seeResponseCodeIsSuccessful();
+    }
+
+    /**
+     * Checks that the response code 3xx
+     *
+     * @part json
+     * @part xml
+     */
+    public function seeResponseCodeIsRedirection()
+    {
+        $this->connectionModule->seeResponseCodeIsRedirection();
+    }
+
+    /**
+     * Checks that the response code is 4xx
+     *
+     * @part json
+     * @part xml
+     */
+    public function seeResponseCodeIsClientError()
+    {
+        $this->connectionModule->seeResponseCodeIsClientError();
+    }
+
+    /**
+     * Checks that the response code is 5xx
+     *
+     * @part json
+     * @part xml
+     */
+    public function seeResponseCodeIsServerError()
+    {
+        $this->connectionModule->seeResponseCodeIsServerError();
+    }
+
+
+    /**
      * Checks whether last response was valid XML.
      * This is done with libxml_get_last_error function.
      *
@@ -1095,7 +1270,7 @@ EOF;
             libxml_clear_errors();
         }
         libxml_use_internal_errors(false);
-        \PHPUnit_Framework_Assert::assertNotSame(
+        \PHPUnit\Framework\Assert::assertNotSame(
             false,
             $doc,
             "xml decoding error #$num with message \"$title\", see http://www.xmlsoft.org/html/libxml-xmlerror.html"
@@ -1103,7 +1278,7 @@ EOF;
     }
 
     /**
-     * Checks wheather XML response matches XPath
+     * Checks whether XML response matches XPath
      *
      * ```php
      * <?php
@@ -1119,7 +1294,7 @@ EOF;
     }
 
     /**
-     * Checks wheather XML response does not match XPath
+     * Checks whether XML response does not match XPath
      *
      * ```php
      * <?php
@@ -1177,7 +1352,7 @@ EOF;
      */
     public function seeXmlResponseEquals($xml)
     {
-        \PHPUnit_Framework_Assert::assertXmlStringEqualsXmlString($this->connectionModule->_getResponseContent(), $xml);
+        \PHPUnit\Framework\Assert::assertXmlStringEqualsXmlString($this->connectionModule->_getResponseContent(), $xml);
     }
 
 
@@ -1192,7 +1367,7 @@ EOF;
      */
     public function dontSeeXmlResponseEquals($xml)
     {
-        \PHPUnit_Framework_Assert::assertXmlStringNotEqualsXmlString(
+        \PHPUnit\Framework\Assert::assertXmlStringNotEqualsXmlString(
             $this->connectionModule->_getResponseContent(),
             $xml
         );
@@ -1216,7 +1391,7 @@ EOF;
      */
     public function seeXmlResponseIncludes($xml)
     {
-        $this->assertContains(
+        $this->assertStringContainsString(
             XmlUtils::toXml($xml)->C14N(),
             XmlUtils::toXml($this->connectionModule->_getResponseContent())->C14N(),
             "found in XML Response"
@@ -1233,7 +1408,7 @@ EOF;
      */
     public function dontSeeXmlResponseIncludes($xml)
     {
-        $this->assertNotContains(
+        $this->assertStringNotContainsString(
             XmlUtils::toXml($xml)->C14N(),
             XmlUtils::toXml($this->connectionModule->_getResponseContent())->C14N(),
             "found in XML Response"
@@ -1261,7 +1436,7 @@ EOF;
      * $I->seeBinaryResponseEquals(md5($fileData));
      * ?>
      * ```
-     * Example: Using sha256 hsah
+     * Example: Using sha256 hash
      *
      * ```php
      * <?php
@@ -1300,22 +1475,6 @@ EOF;
     {
         $responseHash = hash($algo, $this->connectionModule->_getResponseContent());
         $this->assertNotEquals($hash, $responseHash);
-    }
-
-    /**
-     * Deprecated since 2.0.9 and removed since 2.1.0
-     *
-     * @param $path
-     * @throws ModuleException
-     * @deprecated
-     */
-    public function grabDataFromJsonResponse($path)
-    {
-        throw new ModuleException(
-            $this,
-            "This action was deprecated in Codeception 2.0.9 and removed in 2.1. "
-            . "Please use `grabDataFromResponseByJsonPath` instead"
-        );
     }
 
     /**

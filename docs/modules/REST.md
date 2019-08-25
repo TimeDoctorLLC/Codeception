@@ -10,6 +10,7 @@ Otherwise, a PHPBrowser should be specified as a dependency to send requests and
 ## Configuration
 
 * url *optional* - the url of api
+* shortDebugResponse *optional* - amount of chars to limit the api response length
 
 This module requires PHPBrowser or any of Framework modules enabled.
 
@@ -20,6 +21,7 @@ This module requires PHPBrowser or any of Framework modules enabled.
            - REST:
                depends: PhpBrowser
                url: 'http://serviceapp/api/v1/'
+               shortDebugResponse: 300 # only the first 300 chars of the response
 
 ## Public Properties
 
@@ -37,8 +39,33 @@ This module requires PHPBrowser or any of Framework modules enabled.
 Conflicts with SOAP module
 
 
-
 ## Actions
+
+### amAWSAuthenticated
+ 
+Allows to send REST request using AWS Authorization
+
+Only works with PhpBrowser
+Example Config:
+```yml
+modules:
+     enabled:
+         - REST:
+             aws:
+                 key: accessKey
+                 secret: accessSecret
+                 service: awsService
+                 region: awsRegion
+```
+Code:
+```php
+<?php
+$I->amAWSAuthenticated();
+?>
+```
+ * `param array` $additionalAWSConfig
+@throws ModuleException
+
 
 ### amBearerAuthenticated
  
@@ -65,6 +92,26 @@ Adds HTTP authentication via username/password.
 
  * `param` $username
  * `param` $password
+ * `[Part]` json
+ * `[Part]` xml
+
+
+### amNTLMAuthenticated
+ 
+Adds NTLM authentication via username/password.
+Requires client to be Guzzle >=6.3.0
+Out of scope for functional modules.
+
+Example:
+```php
+<?php
+$I->amNTLMAuthenticated('jon_snow', 'targaryen');
+?>
+```
+
+ * `param` $username
+ * `param` $password
+@throws ModuleException
  * `[Part]` json
  * `[Part]` xml
 
@@ -173,9 +220,9 @@ Opposite to seeResponseJsonMatchesXpath
 Opposite to `seeResponseMatchesJsonType`.
 
  * `[Part]` json
-@see seeResponseMatchesJsonType
  * `param` $jsonType jsonType structure
  * `param null` $jsonPath optionally set specific path to structure with JsonPath
+@see seeResponseMatchesJsonType
  * `Available since` 2.1.3
 
 
@@ -202,7 +249,7 @@ Parameter can be passed either as XmlBuilder, DOMDocument, DOMNode, XML string, 
 
 ### dontSeeXmlResponseMatchesXpath
  
-Checks wheather XML response does not match XPath
+Checks whether XML response does not match XPath
 
 ```php
 <?php
@@ -221,15 +268,6 @@ Element is matched by either CSS or XPath
  * `param` $attribute
  * `return` string
  * `[Part]` xml
-
-
-### grabDataFromJsonResponse
- 
-Deprecated since 2.0.9 and removed since 2.1.0
-
- * `param` $path
-@throws ModuleException
-@deprecated
 
 
 ### grabDataFromResponseByJsonPath
@@ -253,9 +291,9 @@ $I->sendPUT('/user', array('id' => $firstUserId[0], 'name' => 'davert'));
 
  * `param string` $jsonPath
  * `return` array Array of matching items
- * `Available since` 2.0.9
 @throws \Exception
  * `[Part]` json
+ * `Available since` 2.0.9
 
 
 ### grabHttpHeader
@@ -283,10 +321,10 @@ $I->sendPUT('/user', array('id' => $user_id, 'name' => 'davert'));
 ?>
 ```
 
- * `Available since` 1.1
  * `return` string
  * `[Part]` json
  * `[Part]` xml
+ * `Available since` 1.1
 
 
 ### grabTextContentFromXmlElement
@@ -338,7 +376,7 @@ $fileData = file_get_contents("test_file.jpg");
 $I->seeBinaryResponseEquals(md5($fileData));
 ?>
 ```
-Example: Using sha256 hsah
+Example: Using sha256 hash
 
 ```php
 <?php
@@ -396,6 +434,38 @@ $I->seeResponseCodeIs(\Codeception\Util\HttpCode::OK);
  * `[Part]` json
  * `[Part]` xml
  * `param` $code
+
+
+### seeResponseCodeIsClientError
+ 
+Checks that the response code is 4xx
+
+ * `[Part]` json
+ * `[Part]` xml
+
+
+### seeResponseCodeIsRedirection
+ 
+Checks that the response code 3xx
+
+ * `[Part]` json
+ * `[Part]` xml
+
+
+### seeResponseCodeIsServerError
+ 
+Checks that the response code is 5xx
+
+ * `[Part]` json
+ * `[Part]` xml
+
+
+### seeResponseCodeIsSuccessful
+ 
+Checks that the response code is 2xx
+
+ * `[Part]` json
+ * `[Part]` xml
 
 
 ### seeResponseContains
@@ -593,7 +663,7 @@ $I->seeResponseMatchesJsonType([
 ?>
 ```
 
-You can also apply filters to check values. Filter can be applied with `:` char after the type declatation.
+You can also apply filters to check values. Filter can be applied with `:` char after the type declaration.
 
 Here is the list of possible filters:
 
@@ -625,9 +695,9 @@ You can also add custom filters y accessing `JsonType::addCustomFilter` method.
 See [JsonType reference](http://codeception.com/docs/reference/JsonType).
 
  * `[Part]` json
- * `Available since` 2.1.3
  * `param array` $jsonType
  * `param string` $jsonPath
+ * `Available since` 2.1.3
 
 
 ### seeXmlResponseEquals
@@ -661,7 +731,7 @@ $I->seeXmlResponseIncludes("<result>1</result>");
 
 ### seeXmlResponseMatchesXpath
  
-Checks wheather XML response matches XPath
+Checks whether XML response matches XPath
 
 ```php
 <?php
@@ -820,4 +890,4 @@ $I->stopFollowingRedirects();
  * `[Part]` xml
  * `[Part]` json
 
-<p>&nbsp;</p><div class="alert alert-warning">Module reference is taken from the source code. <a href="https://github.com/Codeception/Codeception/tree/2.2/src/Codeception/Module/REST.php">Help us to improve documentation. Edit module reference</a></div>
+<p>&nbsp;</p><div class="alert alert-warning">Module reference is taken from the source code. <a href="https://github.com/Codeception/Codeception/tree/3.0/src/Codeception/Module/REST.php">Help us to improve documentation. Edit module reference</a></div>

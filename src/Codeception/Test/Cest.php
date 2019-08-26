@@ -8,6 +8,7 @@ use Codeception\Lib\Parser;
 use Codeception\Step\Comment;
 use Codeception\Util\Annotation;
 use Codeception\Util\ReflectionHelper;
+use PHPUnit\Framework\ExpectationFailedException;
 
 /**
  * Executes tests delivered in Cest format.
@@ -92,15 +93,13 @@ class Cest extends Test implements
             if ($retries > $this->tries) {
                 $this->tries++;
 
-                if ($e instanceOf \PHPUnit_Framework_AssertionFailedError) {
-                    throw $e;
-                } elseif ($e instanceOf \PHPUnit_Framework_Exception) {
+                if ($e instanceOf ExpectationFailedException) {
                     $status = self::STATUS_ERROR;
                 } elseif ($e instanceOf \Throwable) {
-                    $e      = new \PHPUnit_Framework_ExceptionWrapper($e);
+                    $e      = new ExpectationFailedException($e);
                     $status = self::STATUS_ERROR;
                 } elseif ($e instanceOf \Exception) {
-                    $e      = new \PHPUnit_Framework_ExceptionWrapper($e);
+                    $e      = new ExpectationFailedException($e);
                     $status = self::STATUS_ERROR;
                 }
                 $this->executeHook($I, 'failed');

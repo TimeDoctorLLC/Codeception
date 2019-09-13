@@ -87,6 +87,7 @@ abstract class Test implements TestInterface, Interfaces\Descriptive
             $modules = $this->getMetadata()->getService('modules');
             $retries = $modules->getConfig('retries', 0);
             $try     = 0;
+            $status  = self::STATUS_OK;
             do {
                 $try++;
                 if ($status !== self::STATUS_OK) {

@@ -253,7 +253,6 @@ EOF;
         Events::TEST_ERROR   => 'persist',
         Events::TEST_FAIL    => 'persist',
         Events::TEST_SUCCESS => 'cleanup',
-        Events::STEP_BEFORE  => 'afterStep',
         Events::STEP_AFTER   => 'afterStep',
     ];
 

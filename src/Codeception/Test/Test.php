@@ -1,4 +1,5 @@
 <?php
+
 namespace Codeception\Test;
 
 use Codeception\TestInterface;
@@ -32,10 +33,10 @@ abstract class Test implements TestInterface, Interfaces\Descriptive
      * @var array
      */
     protected $hooks = [
-      'ignoreIfMetadataBlocked',
-      'codeCoverage',
-      'assertionCounter',
-      'errorLogger'
+        'ignoreIfMetadataBlocked',
+        'codeCoverage',
+        'assertionCounter',
+        'errorLogger',
     ];
 
     const STATUS_FAIL = 'fail';
@@ -61,7 +62,7 @@ abstract class Test implements TestInterface, Interfaces\Descriptive
      * Runs a test and collects its result in a TestResult instance.
      * Executes before/after hooks coming from traits.
      *
-     * @param  \PHPUnit\Framework\TestResult $result
+     * @param \PHPUnit\Framework\TestResult $result
      * @return \PHPUnit\Framework\TestResult
      */
     final public function run(\PHPUnit\Framework\TestResult $result = null)
@@ -69,9 +70,9 @@ abstract class Test implements TestInterface, Interfaces\Descriptive
         $this->testResult = $result;
 
         $status = self::STATUS_PENDING;
-        $time = 0;
-        $e = null;
-        
+        $time   = 0;
+        $e      = null;
+
         $result->startTest($this);
 
         foreach ($this->hooks as $hook) {
@@ -83,22 +84,31 @@ abstract class Test implements TestInterface, Interfaces\Descriptive
         $failedToStart = ReflectionHelper::readPrivateProperty($result, 'lastTestFailed');
 
         if (!$this->ignored && !$failedToStart) {
-            Timer::start();
-            try {
-                $this->test();
-                $status = self::STATUS_OK;
-            } catch (\PHPUnit\Framework\AssertionFailedError $e) {
-                $status = self::STATUS_FAIL;
-            } catch (\PHPUnit\Framework\Exception $e) {
-                $status = self::STATUS_ERROR;
-            } catch (\Throwable $e) {
-                $e     = new \PHPUnit\Framework\ExceptionWrapper($e);
-                $status = self::STATUS_ERROR;
-            } catch (\Exception $e) {
-                $e     = new \PHPUnit\Framework\ExceptionWrapper($e);
-                $status = self::STATUS_ERROR;
-            }
-            $time = Timer::stop();
+            $modules = $this->getMetadata()->getService('modules');
+            $retries = $modules->getConfig('retries', 0);
+            $try     = 0;
+            do {
+                $try++;
+                if ($status !== self::STATUS_OK) {
+                    $this->getScenario()->comment("test failed: retrying for ".$try);
+                }
+                Timer::start();
+                try {
+                    $this->test();
+                    $status = self::STATUS_OK;
+                } catch (\PHPUnit\Framework\AssertionFailedError $e) {
+                    $status = self::STATUS_FAIL;
+                } catch (\PHPUnit\Framework\Exception $e) {
+                    $status = self::STATUS_ERROR;
+                } catch (\Throwable $e) {
+                    $e      = new \PHPUnit\Framework\ExceptionWrapper($e);
+                    $status = self::STATUS_ERROR;
+                } catch (\Exception $e) {
+                    $e      = new \PHPUnit\Framework\ExceptionWrapper($e);
+                    $status = self::STATUS_ERROR;
+                }
+                $time = Timer::stop();
+            } while ($retries > $try && $status !== self::STATUS_OK);
         }
 
         foreach (array_reverse($this->hooks) as $hook) {
@@ -108,6 +118,7 @@ abstract class Test implements TestInterface, Interfaces\Descriptive
         }
 
         $result->endTest($this, $time);
+
         return $result;
     }
 
@@ -118,6 +129,7 @@ abstract class Test implements TestInterface, Interfaces\Descriptive
 
     /**
      * This class represents exactly one test
+     *
      * @return int
      */
     public function count()

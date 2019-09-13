@@ -88,30 +88,9 @@ class Cest extends Test implements
             $this->executeAfterMethods($this->testMethod, $I);
             $this->executeHook($I, 'passed');
         } catch (\Exception $e) {
-            $modules = $this->getMetadata()->getService('modules');
-            $retries = $modules->getConfig('retries', 0);
-            if ($retries > $this->tries) {
-                $this->tries++;
-
-                if ($e instanceOf ExpectationFailedException) {
-                    $status = self::STATUS_ERROR;
-                } elseif ($e instanceOf \Throwable) {
-                    $e      = new ExpectationFailedException($e);
-                    $status = self::STATUS_ERROR;
-                } elseif ($e instanceOf \Exception) {
-                    $e      = new ExpectationFailedException($e);
-                    $status = self::STATUS_ERROR;
-                }
-                $this->executeHook($I, 'failed');
-                $this->getScenario()->comment($e->getMessage());
-                $this->errorLoggerEnd($status, 0, $e);
-                $this->getScenario()->comment("test failed: retrying for ".$this->tries);
-                $this->test();
-            } else {
-                $this->executeHook($I, 'failed');
-                // fails and errors are now handled by Codeception\PHPUnit\Listener
-                throw $e;
-            }
+            $this->executeHook($I, 'failed');
+            // fails and errors are now handled by Codeception\PHPUnit\Listener
+            throw $e;
         } finally {
             $this->executeHook($I, 'after');
         }

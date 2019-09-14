@@ -560,7 +560,7 @@ EOF;
             return;
         }
 
-        $filename = str_pad($this->stepNum, 3, '0', STR_PAD_LEFT).$e->getName().'.png';
+        $filename = str_pad($this->stepNum, 3, '0', STR_PAD_LEFT).rawurlencode($e->getStep()->toString(255)).'.png';
 
         try {
             if ($this->webDriverModule->webDriver === null) {
